@@ -5,18 +5,18 @@ import { normalizeMemory, type Message, type OnboardingState } from "@/lib/onboa
 const schema = {
   type: "object",
   additionalProperties: false,
-  required: ["acknowledgedTask", "memory", "nextAction"],
+  required: ["acknowledgedTask", "memoryPatch", "nextAction"],
   properties: {
     acknowledgedTask: { type: "boolean" },
-    memory: {
+    memoryPatch: {
       type: "object",
       additionalProperties: false,
       required: ["agentName", "userName", "userEmail", "primaryNeed"],
       properties: {
-        agentName: { type: "string", maxLength: 80 },
-        userName: { type: "string", maxLength: 80 },
-        userEmail: { type: "string", maxLength: 254 },
-        primaryNeed: { type: "string", maxLength: 160 },
+        agentName: { type: ["string", "null"], maxLength: 80 },
+        userName: { type: ["string", "null"], maxLength: 80 },
+        userEmail: { type: ["string", "null"], maxLength: 254 },
+        primaryNeed: { type: ["string", "null"], maxLength: 160 },
       },
     },
     nextAction: { type: "string", enum: ["none", "offer_call", "onboarding_complete"] },
@@ -38,17 +38,20 @@ export async function POST(request: Request) {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-6-astra",
+      model: process.env.OPENAI_TEXT_MODEL || "gpt-6-luna",
       service_tier: "fast",
       store: false,
-      instructions: `Extract durable onboarding memory from this voice conversation, including the user's explicitly stated email address. Never invent or infer an email. Preserve known values unless the user clearly resolves a correction. If the latest user statement conflicts with memory and the assistant asks for clarification, keep the old value until the user clarifies. Set acknowledgedTask true only when the latest user message explicitly requests an action and the latest assistant reply accepts it.
+      reasoning: { effort: "low" },
+      max_output_tokens: 600,
+      prompt_cache_options: { ttl: "30m" },
+      instructions: `Extract only changed or newly learned durable onboarding memory from this voice conversation. Use null for every unchanged field in memoryPatch. Include the user's explicitly stated email address, but never invent or infer one. If the latest user statement conflicts with memory and the assistant asks for clarification, keep the old value until the user clarifies. Set acknowledgedTask true only when the latest user message explicitly requests an action and the latest assistant reply accepts it.
 
 primaryNeed must be one short, stable description of what the user wants help with, under 160 characters. It must never become a transcript, recap, activity log, list of turns, or record of completed actions. Keep it in the user's conversational language and never append a stray translation or switch languages unless the user does.`,
       input: [
         { role: "developer", content: `Current structured memory: ${JSON.stringify(body.profile)}` },
-        ...body.messages.slice(-24).map((message) => ({ role: message.role === "agent" ? "assistant" : "user", content: message.text })),
+        ...body.messages.slice(-8).map((message) => ({ role: message.role === "agent" ? "assistant" : "user", content: message.text })),
       ],
-      text: { format: { type: "json_schema", name: "persona_voice_memory", strict: true, schema } },
+      text: { verbosity: "low", format: { type: "json_schema", name: "persona_voice_memory", strict: true, schema } },
     }),
   });
   if (!response.ok) {
@@ -58,14 +61,20 @@ primaryNeed must be one short, stable description of what the user wants help wi
     return NextResponse.json({ error: "Voice memory could not be extracted." }, { status: 502 });
   }
   const text = outputText(await response.json());
-  const turn = JSON.parse(text) as { acknowledgedTask: boolean; memory: { agentName: string; userName: string; userEmail: string; primaryNeed: string }; nextAction: "none" | "offer_call" | "onboarding_complete" };
-  turn.memory = normalizeMemory(turn.memory);
+  const turn = JSON.parse(text) as {
+    acknowledgedTask: boolean;
+    memoryPatch: { agentName: string | null; userName: string | null; userEmail: string | null; primaryNeed: string | null };
+    nextAction: "none" | "offer_call" | "onboarding_complete";
+  };
+  const memory = normalizeMemory({
+    agentName: turn.memoryPatch.agentName ?? body.profile.agentName,
+    userName: turn.memoryPatch.userName ?? body.profile.userName,
+    userEmail: turn.memoryPatch.userEmail ?? body.profile.userEmail,
+    primaryNeed: turn.memoryPatch.primaryNeed ?? body.profile.primaryNeed,
+  });
   const updatedProfile: OnboardingState = {
     ...body.profile,
-    agentName: turn.memory.agentName || body.profile.agentName,
-    userName: turn.memory.userName || body.profile.userName,
-    userEmail: turn.memory.userEmail || body.profile.userEmail,
-    primaryNeed: turn.memory.primaryNeed || body.profile.primaryNeed,
+    ...memory,
     callStatus: "ended",
   };
   try {
@@ -73,5 +82,5 @@ primaryNeed must be one short, stable description of what the user wants help wi
   } catch {
     return NextResponse.json({ error: "Voice conversation could not be saved." }, { status: 503 });
   }
-  return NextResponse.json(turn);
+  return NextResponse.json({ acknowledgedTask: turn.acknowledgedTask, memory, nextAction: turn.nextAction });
 }

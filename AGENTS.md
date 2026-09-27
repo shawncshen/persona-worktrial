@@ -45,7 +45,7 @@ Users may move into the main experience early when they already have a clear tas
 - When resuming a voice conversation with known names, say `Hey [user], it’s [agent]. Let’s continue where we left off.`
 - If a new statement conflicts with durable memory or a clear earlier statement, identify the mismatch conversationally and ask which version is current before changing memory. Do not treat harmless elaborations or compatible facts as contradictions.
 - When a user explicitly asks the agent to do something, add a thumbs-up reaction to that user message only when the model's reply acknowledges or accepts the task. Do not react to ordinary answers or unaccepted requests.
-- Announce `You're done with onboarding. Let me know if you need anything from me!` exactly once after the agent has a name, knows the user's name, email address, and primary need, and has attempted to offer or complete a voice call.
+- Announce `You're done with onboarding. Let me know if you need anything from me!` exactly once as soon as the agent has a name and knows the user's name and email address. Primary need and a voice-call attempt are no longer required for completion. After receiving the email, do not ask another onboarding question before announcing completion.
 - User-facing chat copy must never use an em dash. This is a strict project rule.
 - The text composer supports both Enter and Command+Enter to send a message.
 - The composer plus button opens the native device picker for photos and common files, including on phones. Show removable previews before sending and render selected attachments in the outgoing iMessage bubble. The current prototype shares attachment names and media types with the agent, not file contents, and must not pretend it inspected the contents.
@@ -136,14 +136,18 @@ Keep the header actions aligned to the far-right edge, opposite the Persona word
 
 Keep the hero headline and supporting copy slightly smaller than the Persona Band reference so the conversation panel begins higher in the viewport. Desktop headline sizing should top out around 68px, with tighter vertical margins and a 16px supporting line.
 
+On phone-sized viewports, present the conversation as a full-screen, edge-to-edge iMessage surface and hide the page-level wordmark and hero. Size the app from the browser visual viewport so the composer remains directly above the iOS keyboard and Safari controls, and do not center-scroll the desktop conversation panel after mobile sends.
+
 The conversation header centers the agent identity in an iMessage-style stack: an original friendly human-like 3D assistant portrait with warm ivory styling and a restrained amber accent, with the chosen agent name directly underneath. The person must remain visually distinct from Meta Muse and other existing mascots. Fill the portrait’s entire circular frame with the warm yellow halo, leaving no white ring around the image. Do not show the “Here when you need it” subtitle. Keep the call control aligned on the right.
 
 Do not show inline “Call” or “Keep texting” choice buttons in the message thread. Voice remains available through the phone icon in the conversation header, while text remains available through the composer.
 
-Opening a voice call is an outgoing call from the user to the agent, never an incoming call. Show an iPhone-style active call stage with the agent avatar, chosen name, connection state or elapsed call timer, and only one centered red hang-up button at the bottom. Do not show answer, decline, mute, “wants to get to know you,” continue-by-text, or visible transcript copy in the call stage.
+Opening a voice call is an outgoing call from the user to the agent, never an incoming call. Show an iPhone-style active call stage with the agent avatar, chosen name, connection state or elapsed call timer, a microphone mute/unmute control, and a red hang-up button at the bottom. Do not show answer, decline, “wants to get to know you,” continue-by-text, or visible transcript copy in the call stage.
 
 Chat messages must render bullet content as semantic lists. Each bullet appears on its own line with clear indentation and vertical spacing, including when model output supplies inline bullet separators.
 
-The evaluator memory page is titled “What the agent learned from onboarding.” Present learned onboarding fields in one clean table-style chart rather than separate cards. Do not show the Conversation statistics card or the approval/reset footnote.
+Text chat and voice-memory extraction use `gpt-6-luna` with low reasoning, Fast mode, low verbosity, and strict Structured Outputs. Every user message must go through the reasoning model so the agent can distinguish genuine onboarding answers from jokes, trolling, ambiguity, contradictions, and unrelated phrases. Model responses return only changed memory fields; the server merges those deltas with the authoritative profile before returning state to the client. Keep the stable instructions and schema at the front of each request for prompt caching, send at most the eight most recent messages alongside structured memory, and keep generated chat replies to one or two short sentences. Do not add deterministic shortcuts that infer or store profile facts from surface-level patterns.
+
+The evaluator memory page is titled “What the agent learned from onboarding.” Present learned onboarding fields in one clean table-style chart rather than separate cards. Do not show the Conversation statistics card, the approval/reset footnote, or the explanatory sentence about working context across text and voice.
 
 Use the official Persona loop mark from the public Persona Band favicon as the website favicon instead of the earlier letter “P” icon.

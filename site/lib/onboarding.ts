@@ -38,9 +38,7 @@ export function normalizeMemory(memory: AgentTurn["memory"]): AgentTurn["memory"
 }
 
 export function isOnboardingReady(profile: OnboardingState): boolean {
-  const hasRequiredDetails = Boolean(profile.agentName.trim() && profile.userName.trim() && profile.userEmail.trim() && profile.primaryNeed.trim());
-  const callWasAttempted = profile.callStatus !== "not_offered";
-  return hasRequiredDetails && callWasAttempted;
+  return Boolean(profile.agentName.trim() && profile.userName.trim() && profile.userEmail.trim());
 }
 
 export function mergeAgentTurn(current: OnboardingState, turn: AgentTurn): OnboardingState {

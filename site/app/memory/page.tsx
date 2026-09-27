@@ -53,7 +53,6 @@ export default function MemoryPage() {
       <section className="memory-intro">
         <p className="eyebrow">Agent memory</p>
         <h1>What the agent learned from onboarding</h1>
-        <p>This is the working context I use across text and voice. You stay in control of it.</p>
       </section>
 
       <section className="memory-chart" aria-live="polite" aria-label="What the agent learned">

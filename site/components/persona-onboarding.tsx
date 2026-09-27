@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, FileText, Mic, Phone, PhoneOff, Plus, X } from "lucide-react";
+import { ArrowUp, FileText, Mic, MicOff, Phone, PhoneOff, Plus, X } from "lucide-react";
 import { isOnboardingReady, mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Attachment, type Message, type OnboardingState } from "@/lib/onboarding";
 import { parseRealtimeVoiceEvent } from "@/lib/voice";
 
@@ -30,7 +30,6 @@ function nextOnboardingQuestion(profile: OnboardingState) {
   if (!profile.agentName) return "What do you want to name me?";
   if (!profile.userName) return "What should I call you?";
   if (!profile.userEmail) return "What’s the best email address for you?";
-  if (!profile.primaryNeed) return "What’s one thing you’d like my help with?";
   return "";
 }
 
@@ -75,6 +74,7 @@ export function PersonaOnboarding() {
   const [ready, setReady] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [callActive, setCallActive] = useState(false);
+  const [callMuted, setCallMuted] = useState(false);
   const [callPhase, setCallPhase] = useState<"requesting_permission" | "connecting" | "active" | "error">("requesting_permission");
   const [, setCallListening] = useState(false);
   const [callError, setCallError] = useState("");
@@ -136,6 +136,44 @@ export function PersonaOnboarding() {
   }, [messages, typing]);
 
   useEffect(() => {
+    const viewport = window.visualViewport;
+    let animationFrame = 0;
+    const settleTimers: number[] = [];
+    const updateViewport = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        document.documentElement.style.setProperty("--visual-viewport-height", `${Math.round(viewport?.height ?? window.innerHeight)}px`);
+        document.documentElement.style.setProperty("--visual-viewport-top", `${Math.round(viewport?.offsetTop ?? 0)}px`);
+        if (window.matchMedia("(max-width: 640px)").matches && document.activeElement?.matches(".message-input-wrap input")) {
+          scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+        }
+      });
+    };
+    const settleViewport = () => {
+      updateViewport();
+      settleTimers.splice(0).forEach((timer) => window.clearTimeout(timer));
+      [80, 220, 420].forEach((delay) => settleTimers.push(window.setTimeout(updateViewport, delay)));
+    };
+    updateViewport();
+    viewport?.addEventListener("resize", updateViewport);
+    viewport?.addEventListener("scroll", updateViewport);
+    window.addEventListener("orientationchange", settleViewport);
+    document.addEventListener("focusin", settleViewport);
+    document.addEventListener("focusout", settleViewport);
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      settleTimers.forEach((timer) => window.clearTimeout(timer));
+      viewport?.removeEventListener("resize", updateViewport);
+      viewport?.removeEventListener("scroll", updateViewport);
+      window.removeEventListener("orientationchange", settleViewport);
+      document.removeEventListener("focusin", settleViewport);
+      document.removeEventListener("focusout", settleViewport);
+      document.documentElement.style.removeProperty("--visual-viewport-height");
+      document.documentElement.style.removeProperty("--visual-viewport-top");
+    };
+  }, []);
+
+  useEffect(() => {
     if (!callActive) return;
     const timer = window.setInterval(() => setCallSeconds((seconds) => seconds + 1), 1000);
     return () => window.clearInterval(timer);
@@ -186,7 +224,9 @@ export function PersonaOnboarding() {
     setMessages(nextMessages);
     setTyping(true);
     window.requestAnimationFrame(() => {
-      shellRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (!window.matchMedia("(max-width: 640px)").matches) {
+        shellRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     });
     try {
       const turn = await requestAgentTurn(nextMessages, profile, "text");
@@ -246,6 +286,7 @@ export function PersonaOnboarding() {
     voiceIdentityRef.current.sessionId = crypto.randomUUID();
     setCallOpen(true);
     setCallActive(false);
+    setCallMuted(false);
     setCallPhase("requesting_permission");
     setCallSeconds(0);
     setCallError("");
@@ -416,6 +457,7 @@ export function PersonaOnboarding() {
     remoteAudioRef.current = null;
     setCallOpen(false);
     setCallActive(false);
+    setCallMuted(false);
     setCallListening(false);
     const finishCall = async () => {
       const savedProfile = voiceMessagesRef.current.length
@@ -428,6 +470,14 @@ export function PersonaOnboarding() {
       if (nextQuestion) addAgentMessage(nextQuestion, 300);
     };
     void finishCall();
+  };
+
+  const toggleCallMute = () => {
+    const nextMuted = !callMuted;
+    microphoneRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = !nextMuted;
+    });
+    setCallMuted(nextMuted);
   };
 
   useEffect(() => {
@@ -535,7 +585,7 @@ export function PersonaOnboarding() {
           <button type="button" className="composer-icon" aria-label="Attach photos or files" onClick={() => fileInputRef.current?.click()}><Plus size={21} strokeWidth={1.9} /></button>
           <label className="message-input-wrap">
             <span className="sr-only">Message {agentLabel}</span>
-            <input value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleComposerKeyDown} type="text" placeholder="Message" aria-label={`Message ${agentLabel}`} autoComplete="off" />
+            <input value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleComposerKeyDown} type="text" inputMode="text" enterKeyHint="send" autoCapitalize="sentences" spellCheck placeholder="Message" aria-label={`Message ${agentLabel}`} autoComplete="off" />
             {input.trim() || pendingAttachments.length ? <button type="submit" className="send-button" aria-label="Send message"><ArrowUp size={18} strokeWidth={2.4} /></button> : <button type="button" className="mic-button" aria-label="Dictate a message"><Mic size={19} strokeWidth={1.9} /></button>}
           </label>
         </form>
@@ -551,6 +601,9 @@ export function PersonaOnboarding() {
               : callPhase === "requesting_permission" ? "waiting for microphone…" : callPhase === "connecting" ? "connecting…" : "call didn’t connect"}</p>
             {callError && <p className="call-error" role="alert">{callError}</p>}
             <div className="active-call-actions">
+              <button type="button" className={`mute-control${callMuted ? " muted" : ""}`} aria-label={callMuted ? "Unmute microphone" : "Mute microphone"} aria-pressed={callMuted} onClick={toggleCallMute}>
+                {callMuted ? <MicOff size={24} /> : <Mic size={24} />}
+              </button>
               <button type="button" className="hangup-control" aria-label="Hang up" onClick={endCall}><PhoneOff size={25} /></button>
             </div>
           </div>

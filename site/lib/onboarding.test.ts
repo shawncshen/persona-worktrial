@@ -45,14 +45,12 @@ test("keeps primary need compact and single-line", () => {
   assert.equal(memory.primaryNeed.includes("\n"), false);
 });
 
-test("finishes only after details and a call attempt", () => {
+test("finishes as soon as agent name, user name, and email are known", () => {
   assert.equal(isOnboardingReady(current), false);
   assert.equal(isOnboardingReady({
     ...current,
     agentName: "Nova",
     userName: "Shawn",
     userEmail: "shawn@example.com",
-    primaryNeed: "recruiting follow-ups",
-    callStatus: "ended",
   }), true);
 });
