@@ -22,12 +22,23 @@ export type AgentTurn = {
   nextAction: "none" | "offer_call" | "offer_google" | "onboarding_complete";
 };
 
+const MEMORY_LIMITS = { agentName: 80, userName: 80, primaryNeed: 160 } as const;
+
+export function normalizeMemory(memory: AgentTurn["memory"]): AgentTurn["memory"] {
+  return {
+    agentName: memory.agentName.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.agentName),
+    userName: memory.userName.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.userName),
+    primaryNeed: memory.primaryNeed.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.primaryNeed),
+  };
+}
+
 export function mergeAgentTurn(current: OnboardingState, turn: AgentTurn): OnboardingState {
+  const memory = normalizeMemory(turn.memory);
   return {
     ...current,
-    agentName: turn.memory.agentName || current.agentName,
-    userName: turn.memory.userName || current.userName,
-    primaryNeed: turn.memory.primaryNeed || current.primaryNeed,
+    agentName: memory.agentName || current.agentName,
+    userName: memory.userName || current.userName,
+    primaryNeed: memory.primaryNeed || current.primaryNeed,
     callStatus: turn.nextAction === "offer_call" && current.callStatus === "not_offered" ? "offered" : current.callStatus,
     googleStatus: turn.nextAction === "offer_google" && current.googleStatus === "not_asked" ? "offered" : current.googleStatus,
   };

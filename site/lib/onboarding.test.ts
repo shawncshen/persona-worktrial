@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mergeAgentTurn, type AgentTurn, type OnboardingState } from "./onboarding.ts";
+import { mergeAgentTurn, normalizeMemory, type AgentTurn, type OnboardingState } from "./onboarding.ts";
 
 const current: OnboardingState = {
   agentName: "Nova",
@@ -33,4 +33,13 @@ test("turn actions reveal the voice choice without overwriting memory", () => {
     nextAction: "offer_call",
   };
   assert.equal(mergeAgentTurn(current, turn).callStatus, "offered");
+});
+
+test("keeps primary need compact and single-line", () => {
+  const longNeed = `help me with email\n${"activity log ".repeat(30)}`;
+  const memory = normalizeMemory({ agentName: " Nova ", userName: " Shawn ", primaryNeed: longNeed });
+  assert.equal(memory.agentName, "Nova");
+  assert.equal(memory.userName, "Shawn");
+  assert.ok(memory.primaryNeed.length <= 160);
+  assert.equal(memory.primaryNeed.includes("\n"), false);
 });

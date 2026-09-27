@@ -119,6 +119,12 @@ The page-level privacy note beneath the conversation panel has been removed from
 
 Voice calls and text chat are separate presentation channels. Realtime voice transcripts must not be appended to the visible text thread or followed by a text recap. Persist the full voice transcript and the latest structured onboarding profile in server-side D1 storage; the call overlay may show only the current live caption. Text chat remains device-local for the credential-free demo.
 
+Realtime voice uses the `cedar` voice. Its speaking style is warm, relaxed, casually confident, and concise, like a capable friend in an iMessage conversation. Use contractions and everyday language, vary acknowledgements, speak at a natural pace with brief pauses, and usually answer in one or two short sentences. A small natural laugh is acceptable only when it genuinely eases the mood; never force it, overuse it, or use it around serious or sensitive content.
+
+Voice startup must expose distinct microphone-permission, connecting, active, and failed states. The hang-up control remains available throughout startup. Permission and connection waits must time out with useful recovery copy, and a canceled or stale attempt must never connect later.
+
+Durable `primary_need` memory is one compact description of the user's ongoing need, capped at 160 characters. It must not accumulate transcripts, completed actions, recaps, or activity logs, and it stays in the user's conversational language unless the user changes languages.
+
 Message reactions are reserved for accepted actions. Refusals, inability statements, hypotheticals, ordinary conversation, and unperformed workarounds receive no reaction. Accepted actions use 👍 by default, with one more contextually obvious emoji allowed when it clearly fits the task, such as 🎂 for an accepted birthday request.
 
 The Start over control lives in the top-left of the conversation header, opposite the call control, while the agent identity remains centered. It is no longer shown in the page-level header. Present it as a compact rounded button with a subtle gray outline and white fill.

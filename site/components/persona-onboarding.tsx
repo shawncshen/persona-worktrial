@@ -1,9 +1,9 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ArrowUp, CalendarDays, Check, Mail, Mic, Phone, PhoneOff, Plus, ShieldCheck } from "lucide-react";
 import { mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Message, type OnboardingState } from "@/lib/onboarding";
+import { parseRealtimeVoiceEvent } from "@/lib/voice";
 
 type ModelContext = {
   registerTool: (tool: {
@@ -65,6 +65,7 @@ export function PersonaOnboarding() {
   const [ready, setReady] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [callActive, setCallActive] = useState(false);
+  const [callPhase, setCallPhase] = useState<"requesting_permission" | "connecting" | "active" | "error">("requesting_permission");
   const [, setCallListening] = useState(false);
   const [callError, setCallError] = useState("");
   const [callSeconds, setCallSeconds] = useState(0);
@@ -82,6 +83,8 @@ export function PersonaOnboarding() {
   const voiceMessagesRef = useRef<Message[]>([]);
   const voiceIdentityRef = useRef({ deviceId: "", sessionId: "" });
   const liveTranscriptRef = useRef("");
+  const callAttemptRef = useRef(0);
+  const callRequestRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     let deviceId = window.localStorage.getItem(DEVICE_STORAGE_KEY);
@@ -181,10 +184,12 @@ export function PersonaOnboarding() {
   };
 
   const startCall = () => {
+    callAttemptRef.current += 1;
     voiceMessagesRef.current = [];
     voiceIdentityRef.current.sessionId = crypto.randomUUID();
     setCallOpen(true);
     setCallActive(false);
+    setCallPhase("requesting_permission");
     setCallSeconds(0);
     setCallError("");
     setCallCaption("");
@@ -212,15 +217,33 @@ export function PersonaOnboarding() {
     } catch { setCallError("The call is still active, but I couldn’t save this turn yet."); }
   };
 
-  const answerCall = async () => {
+  const answerCall = async (attempt: number) => {
     setCallError("");
-    setCallCaption("Connecting securely…");
+    setCallPhase("requesting_permission");
+    setCallCaption("Allow microphone access to start the call.");
+    let pendingStream: MediaStream | null = null;
     try {
+      const microphoneRequest = navigator.mediaDevices.getUserMedia({ audio: true });
+      void microphoneRequest.then((lateStream) => {
+        if (attempt !== callAttemptRef.current) lateStream.getTracks().forEach((track) => track.stop());
+      }).catch(() => undefined);
+      const permissionTimeout = new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error("microphone-timeout")), 12000));
+      const stream = await Promise.race([
+        microphoneRequest,
+        permissionTimeout,
+      ]);
+      pendingStream = stream;
+      if (attempt !== callAttemptRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+
+      setCallPhase("connecting");
+      setCallCaption("Connecting securely…");
       const peer = new RTCPeerConnection();
       const audio = document.createElement("audio");
       audio.autoplay = true;
       peer.ontrack = (event) => { audio.srcObject = event.streams[0]; };
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => peer.addTrack(track, stream));
       const channel = peer.createDataChannel("oai-events");
 
@@ -230,18 +253,18 @@ export function PersonaOnboarding() {
       remoteAudioRef.current = audio;
 
       channel.addEventListener("message", (event) => {
-        const serverEvent = JSON.parse(event.data) as { type?: string; transcript?: string; delta?: string; error?: { message?: string } };
-        if (serverEvent.type === "conversation.item.input_audio_transcription.completed" && serverEvent.transcript?.trim()) {
-          const userMessage: Message = { id: crypto.randomUUID(), role: "user", text: serverEvent.transcript.trim() };
+        const parsed = parseRealtimeVoiceEvent(event.data);
+        if (parsed.kind === "user_transcript") {
+          const userMessage: Message = { id: crypto.randomUUID(), role: "user", text: parsed.text };
           voiceMessagesRef.current = [...voiceMessagesRef.current, userMessage];
           void persistVoiceMessage(userMessage).catch(() => setCallError("The call is still active, but I couldn’t save this turn yet."));
         }
-        if (serverEvent.type === "response.output_audio_transcript.delta") {
-          liveTranscriptRef.current += serverEvent.delta || "";
+        if (parsed.kind === "agent_delta") {
+          liveTranscriptRef.current += parsed.text;
           setCallCaption(liveTranscriptRef.current);
         }
-        if (serverEvent.type === "response.output_audio_transcript.done") {
-          const transcript = (serverEvent.transcript || liveTranscriptRef.current).trim();
+        if (parsed.kind === "agent_transcript") {
+          const transcript = (parsed.text || liveTranscriptRef.current).trim();
           liveTranscriptRef.current = "";
           if (!transcript) return;
           setCallCaption(transcript);
@@ -250,11 +273,13 @@ export function PersonaOnboarding() {
           void persistVoiceMessage(agentMessage).catch(() => setCallError("The call is still active, but I couldn’t save this turn yet."));
           void saveVoiceMemory(voiceMessagesRef.current);
         }
-        if (serverEvent.type === "error") setCallError(serverEvent.error?.message || "The live call hit an error. You can continue by text.");
+        if (parsed.kind === "error") setCallError(`${parsed.text} You can continue by text.`);
       });
 
       channel.addEventListener("open", () => {
+        if (attempt !== callAttemptRef.current) return;
         setCallActive(true);
+        setCallPhase("active");
         setCallListening(true);
         setCallCaption("Listening…");
         messagesRef.current.slice(-24).forEach((message) => channel.send(JSON.stringify({
@@ -273,23 +298,50 @@ export function PersonaOnboarding() {
 
       const offer = await peer.createOffer();
       await peer.setLocalDescription(offer);
-      const response = await fetch("/api/realtime", { method: "POST", headers: { "Content-Type": "application/sdp" }, body: offer.sdp });
+      const requestController = new AbortController();
+      callRequestRef.current = requestController;
+      const connectionTimeout = window.setTimeout(() => requestController.abort(), 15000);
+      const response = await fetch("/api/realtime", { method: "POST", headers: { "Content-Type": "application/sdp" }, body: offer.sdp, signal: requestController.signal });
+      window.clearTimeout(connectionTimeout);
       if (!response.ok) throw new Error(await response.text());
+      if (attempt !== callAttemptRef.current) return;
       await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
-    } catch {
+    } catch (error) {
+      if (attempt !== callAttemptRef.current) {
+        pendingStream?.getTracks().forEach((track) => track.stop());
+        return;
+      }
       microphoneRef.current?.getTracks().forEach((track) => track.stop());
       peerRef.current?.close();
-      setCallError("I couldn’t start the live call. Check microphone access, or keep going by text.");
+      peerRef.current = null;
+      microphoneRef.current = null;
+      setCallActive(false);
+      setCallPhase("error");
+      const errorName = error instanceof DOMException ? error.name : "";
+      const errorMessage = error instanceof Error ? error.message : "";
+      setCallError(errorName === "NotAllowedError"
+        ? "Microphone access was blocked. Allow it in your browser, or keep texting."
+        : errorName === "NotFoundError"
+          ? "I couldn’t find a microphone. Connect one, or keep texting."
+          : errorMessage === "microphone-timeout"
+            ? "Microphone permission is taking too long. You can hang up and try again."
+            : "I couldn’t start the live call. Check microphone access, or keep going by text.");
+      if (errorMessage === "microphone-timeout") callAttemptRef.current += 1;
       setCallCaption("");
     }
   };
 
   useEffect(() => {
     if (!callOpen || callActive || peerRef.current) return;
-    void answerCall();
+    void answerCall(callAttemptRef.current);
+  // answerCall intentionally snapshots refs for one call attempt.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [callActive, callOpen]);
 
   const endCall = () => {
+    callAttemptRef.current += 1;
+    callRequestRef.current?.abort();
+    callRequestRef.current = null;
     dataChannelRef.current?.close();
     peerRef.current?.close();
     microphoneRef.current?.getTracks().forEach((track) => track.stop());
@@ -366,7 +418,7 @@ export function PersonaOnboarding() {
           <span className="wordmark-sheen" aria-hidden="true">persona</span>
         </button>
         <div className="header-actions">
-          <Link className="memory-link" href="/memory">What I know</Link>
+          <a className="memory-link" href="/memory">What I know</a>
         </div>
       </header>
 
@@ -433,7 +485,9 @@ export function PersonaOnboarding() {
           <div className="call-panel">
             <div className="call-aura" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
             <h2>{agentLabel}</h2>
-            <p className="call-status">{callActive ? `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}` : "calling…"}</p>
+            <p className="call-status">{callActive
+              ? `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`
+              : callPhase === "requesting_permission" ? "waiting for microphone…" : callPhase === "connecting" ? "connecting…" : "call didn’t connect"}</p>
             {callError && <p className="call-error" role="alert">{callError}</p>}
             <div className="active-call-actions">
               <button type="button" className="hangup-control" aria-label="Hang up" onClick={endCall}><PhoneOff size={25} /></button>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { saveVoiceSnapshot } from "@/db/onboarding";
-import type { Message, OnboardingState } from "@/lib/onboarding";
+import { normalizeMemory, type Message, type OnboardingState } from "@/lib/onboarding";
 
 const schema = {
   type: "object",
@@ -15,7 +15,7 @@ const schema = {
       properties: {
         agentName: { type: "string", maxLength: 80 },
         userName: { type: "string", maxLength: 80 },
-        primaryNeed: { type: "string", maxLength: 300 },
+        primaryNeed: { type: "string", maxLength: 160 },
       },
     },
     nextAction: { type: "string", enum: ["none", "offer_call", "offer_google", "onboarding_complete"] },
@@ -39,7 +39,9 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || "gpt-6-astra",
       store: false,
-      instructions: `Extract durable onboarding memory from this voice conversation. Preserve known values unless the user clearly resolves a correction. If the latest user statement conflicts with memory and the assistant asks for clarification, keep the old value until the user clarifies. Set acknowledgedTask true only when the latest user message explicitly requests an action and the latest assistant reply accepts it. Choose offer_google only when Google would clearly help the stated need.`,
+      instructions: `Extract durable onboarding memory from this voice conversation. Preserve known values unless the user clearly resolves a correction. If the latest user statement conflicts with memory and the assistant asks for clarification, keep the old value until the user clarifies. Set acknowledgedTask true only when the latest user message explicitly requests an action and the latest assistant reply accepts it. Choose offer_google only when Google would clearly help the stated need.
+
+primaryNeed must be one short, stable description of what the user wants help with, under 160 characters. It must never become a transcript, recap, activity log, list of turns, or record of completed actions. Keep it in the user's conversational language and never append a stray translation or switch languages unless the user does.`,
       input: [
         { role: "developer", content: `Current structured memory: ${JSON.stringify(body.profile)}` },
         ...body.messages.slice(-24).map((message) => ({ role: message.role === "agent" ? "assistant" : "user", content: message.text })),
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
   }
   const text = outputText(await response.json());
   const turn = JSON.parse(text) as { acknowledgedTask: boolean; memory: { agentName: string; userName: string; primaryNeed: string }; nextAction: "none" | "offer_call" | "offer_google" | "onboarding_complete" };
+  turn.memory = normalizeMemory(turn.memory);
   const updatedProfile: OnboardingState = {
     ...body.profile,
     agentName: turn.memory.agentName || body.profile.agentName,

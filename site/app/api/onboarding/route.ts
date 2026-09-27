@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { Message, OnboardingState } from "@/lib/onboarding";
+import { normalizeMemory, type AgentTurn, type Message, type OnboardingState } from "@/lib/onboarding";
 
 type RequestBody = {
   messages?: Message[];
@@ -22,7 +22,7 @@ const responseSchema = {
       properties: {
         agentName: { type: "string", maxLength: 80 },
         userName: { type: "string", maxLength: 80 },
-        primaryNeed: { type: "string", maxLength: 300 },
+        primaryNeed: { type: "string", maxLength: 160 },
       },
     },
     nextAction: { type: "string", enum: ["none", "offer_call", "offer_google", "onboarding_complete"] },
@@ -45,6 +45,7 @@ When the user says something that conflicts with a durable fact already in memor
 Use nextAction to let the interface offer a short voice call after you have been named, offer Google only after you understand a need that Gmail or Calendar could support, and mark onboarding_complete when you know the agent name, user name, and primary need and Google has been addressed or is unnecessary.
 
 Return the complete current memory in every response. Preserve known values unless the user clearly corrects them.
+Keep primaryNeed to one short, durable description of what the user wants help with. It is not a transcript, recap, activity log, or list of completed actions. Keep it under 160 characters and in the user's conversational language. Never append stray translations or switch languages unless the user does.
 
 Set acknowledgedTask to true only when the user explicitly requests an action and your reply commits to performing that request, or commits to an actionable alternative you can actually perform. A refusal, inability, explanation, hypothetical, question, preference, correction, or unperformed workaround is not an acknowledgement: set acknowledgedTask to false.
 
@@ -102,5 +103,6 @@ export async function POST(request: Request) {
   const text = outputText(payload);
   if (!text) return NextResponse.json({ error: "The agent returned an empty response." }, { status: 502 });
 
-  return NextResponse.json(JSON.parse(text));
+  const turn = JSON.parse(text) as AgentTurn;
+  return NextResponse.json({ ...turn, memory: normalizeMemory(turn.memory) });
 }
