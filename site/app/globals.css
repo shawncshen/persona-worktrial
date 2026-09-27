@@ -271,6 +271,8 @@ input:focus-visible {
 .connector-card > button:not(.text-action) { border: 0; border-radius: 999px; background: #1d1d1f; color: white; padding: 9px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer; }
 .connector-card .text-action { grid-column: 2 / 4; justify-self: start; border: 0; background: transparent; color: var(--muted); padding: 0; font-size: 0.76rem; cursor: pointer; }
 
+.connected-card { display: inline-flex; align-items: center; gap: 7px; margin: 14px 0 4px; border-radius: 999px; background: #eaf7ed; color: #1f6d35; padding: 9px 13px; font-size: .8rem; font-weight: 600; }
+
 .composer {
   display: grid;
   grid-template-columns: 38px 1fr;
@@ -347,6 +349,43 @@ input:focus-visible {
   backdrop-filter: blur(18px);
   animation: fade-in 250ms ease both;
 }
+
+.connector-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(18, 18, 19, 0.22);
+  backdrop-filter: blur(16px);
+  animation: fade-in 250ms ease both;
+}
+
+.permission-panel {
+  width: min(470px, 100%);
+  border: 1px solid rgba(255, 255, 255, .8);
+  border-radius: 30px;
+  background: #fff;
+  padding: 30px;
+  box-shadow: 0 34px 100px rgba(0, 0, 0, .2);
+  text-align: center;
+  animation: call-pop 450ms cubic-bezier(.22,.9,.28,1) both;
+}
+
+.permission-brand { display: grid; width: 58px; height: 58px; place-items: center; margin: 0 auto; border: 1px solid #e3e3e5; border-radius: 17px; color: #4285f4; font-size: 1.6rem; font-weight: 700; box-shadow: 0 10px 24px rgba(20, 20, 22, .07); }
+.permission-kicker { margin: 20px 0 8px; color: var(--muted); font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.permission-panel h2 { margin: 0 auto; max-width: 13ch; font-size: 1.9rem; font-weight: 500; letter-spacing: -.035em; line-height: 1.08; }
+.permission-lede { max-width: 37ch; margin: 14px auto 22px; color: var(--muted); font-size: .88rem; line-height: 1.45; }
+.permission-list { display: grid; gap: 8px; text-align: left; }
+.permission-list > div { display: flex; align-items: center; gap: 12px; border-radius: 15px; background: #f5f5f7; padding: 12px 14px; }
+.permission-list svg { flex: 0 0 auto; color: #55555a; }
+.permission-list span { display: flex; flex-direction: column; gap: 2px; }
+.permission-list strong { font-size: .86rem; }
+.permission-list small { color: var(--muted); font-size: .74rem; }
+.allow-google { width: 100%; min-height: 46px; margin-top: 22px; border: 0; border-radius: 999px; background: #1d1d1f; color: white; font-size: .9rem; font-weight: 600; cursor: pointer; }
+.allow-google:disabled { cursor: wait; opacity: .65; }
+.cancel-google { margin-top: 14px; border: 0; background: transparent; color: var(--muted); font-size: .82rem; cursor: pointer; }
 
 .call-panel {
   display: flex;

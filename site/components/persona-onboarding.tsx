@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, MicOff, Phone, PhoneOff, Plus, Volume2 } from "lucide-react";
+import { ArrowUp, CalendarDays, Check, Mail, Mic, MicOff, Phone, PhoneOff, Plus, ShieldCheck, Volume2 } from "lucide-react";
 
 type Message = { id: string; role: "agent" | "user"; text: string };
 type OnboardingState = {
@@ -66,6 +66,8 @@ export function PersonaOnboarding() {
   const [callError, setCallError] = useState("");
   const [callSeconds, setCallSeconds] = useState(0);
   const [callCaption, setCallCaption] = useState("");
+  const [connectorOpen, setConnectorOpen] = useState(false);
+  const [connectorBusy, setConnectorBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -197,6 +199,21 @@ export function PersonaOnboarding() {
     addAgentMessage(learned ? `Good talking with you. I saved that ${learned}. We can keep going here.` : "Looks like we got cut off. No worries. We can keep going here, or call again anytime.", 250);
   };
 
+  const allowGoogle = () => {
+    setConnectorBusy(true);
+    window.setTimeout(() => {
+      setProfile((state) => ({ ...state, googleStatus: "connected" }));
+      setConnectorBusy(false);
+      setConnectorOpen(false);
+      addAgentMessage(`You’re connected. I can now help with ${profile.primaryNeed || "your inbox and calendar"}. Want me to show you where I’d start?`, 350);
+    }, 900);
+  };
+
+  const declineGoogle = () => {
+    setProfile((state) => ({ ...state, googleStatus: "declined" }));
+    addAgentMessage("No problem. I can still help from anything you share here, and you can connect later if you want.", 300);
+  };
+
   const resetDemo = () => {
     window.localStorage.removeItem(STORAGE_KEY);
     setProfile(initialState);
@@ -246,9 +263,12 @@ export function PersonaOnboarding() {
             <div className="connector-card">
               <div className="google-mark" aria-hidden="true">G</div>
               <div><strong>Connect Google</strong><p>Gmail and Calendar, with your permission</p></div>
-              <button type="button">Allow</button>
-              <button type="button" className="text-action" onClick={() => setProfile((state) => ({ ...state, googleStatus: "declined" }))}>Not now</button>
+              <button type="button" onClick={() => setConnectorOpen(true)}>Allow</button>
+              <button type="button" className="text-action" onClick={declineGoogle}>Not now</button>
             </div>
+          )}
+          {profile.googleStatus === "connected" && (
+            <div className="connected-card"><Check size={16} /><span>Google connected</span></div>
           )}
         </div>
 
@@ -288,6 +308,24 @@ export function PersonaOnboarding() {
               </div>
             )}
             <button type="button" className="continue-text" onClick={endCall}>Continue by text</button>
+          </div>
+        </div>
+      )}
+
+      {connectorOpen && (
+        <div className="connector-backdrop" role="dialog" aria-modal="true" aria-label="Connect Google">
+          <div className="permission-panel">
+            <div className="permission-brand"><span>G</span></div>
+            <p className="permission-kicker">Connect Google</p>
+            <h2>Let {agentLabel} help where it matters.</h2>
+            <p className="permission-lede">Start with read access. Sending or changing anything will always require another clear approval.</p>
+            <div className="permission-list">
+              <div><Mail size={20} /><span><strong>Gmail</strong><small>Find messages and prepare drafts</small></span></div>
+              <div><CalendarDays size={20} /><span><strong>Calendar</strong><small>See events and scheduling conflicts</small></span></div>
+              <div><ShieldCheck size={20} /><span><strong>You stay in control</strong><small>Remove access whenever you want</small></span></div>
+            </div>
+            <button type="button" className="allow-google" onClick={allowGoogle} disabled={connectorBusy}>{connectorBusy ? "Connecting…" : "Allow read access"}</button>
+            <button type="button" className="cancel-google" onClick={() => setConnectorOpen(false)} disabled={connectorBusy}>Not now</button>
           </div>
         </div>
       )}
