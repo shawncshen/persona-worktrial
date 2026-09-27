@@ -24,6 +24,7 @@ const initialMessages: Message[] = [{
 const initialState: OnboardingState = {
   agentName: "", userName: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked",
 };
+const DEVICE_STORAGE_KEY = "persona-device-id";
 
 export function PersonaOnboarding() {
   const [profile, setProfile] = useState<OnboardingState>(initialState);
@@ -47,10 +48,17 @@ export function PersonaOnboarding() {
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
   const messagesRef = useRef<Message[]>(initialMessages);
   const profileRef = useRef<OnboardingState>(initialState);
-  const pendingVoiceUserIdRef = useRef<string | null>(null);
+  const voiceMessagesRef = useRef<Message[]>([]);
+  const voiceIdentityRef = useRef({ deviceId: "", sessionId: "" });
   const liveTranscriptRef = useRef("");
 
   useEffect(() => {
+    let deviceId = window.localStorage.getItem(DEVICE_STORAGE_KEY);
+    if (!deviceId) {
+      deviceId = crypto.randomUUID();
+      window.localStorage.setItem(DEVICE_STORAGE_KEY, deviceId);
+    }
+    voiceIdentityRef.current.deviceId = deviceId;
     const saved = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
     if (saved) {
       try {
@@ -142,6 +150,8 @@ export function PersonaOnboarding() {
   };
 
   const startCall = () => {
+    voiceMessagesRef.current = [];
+    voiceIdentityRef.current.sessionId = crypto.randomUUID();
     setCallOpen(true);
     setCallActive(false);
     setCallSeconds(0);
@@ -149,20 +159,26 @@ export function PersonaOnboarding() {
     setCallCaption("");
   };
 
-  const saveVoiceMemory = async (voiceMessages: Message[], userMessageId: string | null) => {
+  const persistVoiceMessage = async (message: Message) => {
+    const response = await fetch("/api/onboarding/voice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...voiceIdentityRef.current, message }),
+    });
+    if (!response.ok) throw new Error("Voice message persistence failed");
+  };
+
+  const saveVoiceMemory = async (voiceMessages: Message[]) => {
     try {
       const response = await fetch("/api/onboarding/memory", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: voiceMessages, profile: profileRef.current }),
+        body: JSON.stringify({ messages: voiceMessages, profile: profileRef.current, ...voiceIdentityRef.current }),
       });
-      if (!response.ok) return;
+      if (!response.ok) throw new Error("Voice memory persistence failed");
       const turn = await response.json() as Omit<AgentTurn, "reply">;
       setProfile((current) => mergeAgentTurn(current, { ...turn, reply: "" }));
-      if (turn.acknowledgedTask && userMessageId) {
-        setMessages((items) => items.map((message) => message.id === userMessageId ? { ...message, reaction: "thumbs_up" } : message));
-      }
-    } catch { /* The transcript remains available even if structured extraction fails. */ }
+    } catch { setCallError("The call is still active, but I couldn’t save this turn yet."); }
   };
 
   const answerCall = async () => {
@@ -186,9 +202,8 @@ export function PersonaOnboarding() {
         const serverEvent = JSON.parse(event.data) as { type?: string; transcript?: string; delta?: string; error?: { message?: string } };
         if (serverEvent.type === "conversation.item.input_audio_transcription.completed" && serverEvent.transcript?.trim()) {
           const userMessage: Message = { id: crypto.randomUUID(), role: "user", text: serverEvent.transcript.trim() };
-          pendingVoiceUserIdRef.current = userMessage.id;
-          messagesRef.current = [...messagesRef.current, userMessage];
-          setMessages(messagesRef.current);
+          voiceMessagesRef.current = [...voiceMessagesRef.current, userMessage];
+          void persistVoiceMessage(userMessage).catch(() => setCallError("The call is still active, but I couldn’t save this turn yet."));
         }
         if (serverEvent.type === "response.output_audio_transcript.delta") {
           liveTranscriptRef.current += serverEvent.delta || "";
@@ -200,10 +215,9 @@ export function PersonaOnboarding() {
           if (!transcript) return;
           setCallCaption(transcript);
           const agentMessage: Message = { id: crypto.randomUUID(), role: "agent", text: transcript };
-          messagesRef.current = [...messagesRef.current, agentMessage];
-          setMessages(messagesRef.current);
-          void saveVoiceMemory(messagesRef.current, pendingVoiceUserIdRef.current);
-          pendingVoiceUserIdRef.current = null;
+          voiceMessagesRef.current = [...voiceMessagesRef.current, agentMessage];
+          void persistVoiceMessage(agentMessage).catch(() => setCallError("The call is still active, but I couldn’t save this turn yet."));
+          void saveVoiceMemory(voiceMessagesRef.current);
         }
         if (serverEvent.type === "error") setCallError(serverEvent.error?.message || "The live call hit an error. You can continue by text.");
       });
@@ -253,12 +267,11 @@ export function PersonaOnboarding() {
     peerRef.current = null;
     microphoneRef.current = null;
     remoteAudioRef.current = null;
-    const learned = [profile.userName && `your name is ${profile.userName}`, profile.primaryNeed && `you want help with ${profile.primaryNeed}`].filter(Boolean).join(" and ");
     setCallOpen(false);
     setCallActive(false);
     setCallListening(false);
     setProfile((state) => ({ ...state, callStatus: "ended" }));
-    addAgentMessage(learned ? `Good talking with you. I saved that ${learned}. We can keep going here.` : "Looks like we got cut off. No worries. We can keep going here, or call again anytime.", 250);
+    if (voiceMessagesRef.current.length) void saveVoiceMemory(voiceMessagesRef.current);
   };
 
   const allowGoogle = () => {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { saveVoiceSnapshot } from "@/db/onboarding";
 import type { Message, OnboardingState } from "@/lib/onboarding";
 
 const schema = {
@@ -29,8 +30,8 @@ function outputText(payload: { output_text?: string; output?: Array<{ content?: 
 export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: "Memory extraction is not configured." }, { status: 503 });
-  const body = await request.json() as { messages?: Message[]; profile?: OnboardingState };
-  if (!body.profile || !body.messages?.length) return NextResponse.json({ error: "Conversation context is required." }, { status: 400 });
+  const body = await request.json() as { messages?: Message[]; profile?: OnboardingState; deviceId?: string; sessionId?: string };
+  if (!body.profile || !body.messages?.length || !body.deviceId || !body.sessionId) return NextResponse.json({ error: "Conversation context and session identity are required." }, { status: 400 });
 
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -46,7 +47,26 @@ export async function POST(request: Request) {
       text: { format: { type: "json_schema", name: "persona_voice_memory", strict: true, schema } },
     }),
   });
-  if (!response.ok) return NextResponse.json({ error: "Voice memory could not be saved." }, { status: 502 });
+  if (!response.ok) {
+    try {
+      await saveVoiceSnapshot({ deviceId: body.deviceId, sessionId: body.sessionId }, body.messages, body.profile);
+    } catch { /* Return the model failure below; the client can retry persistence on the next turn. */ }
+    return NextResponse.json({ error: "Voice memory could not be extracted." }, { status: 502 });
+  }
   const text = outputText(await response.json());
-  return NextResponse.json(JSON.parse(text));
+  const turn = JSON.parse(text) as { acknowledgedTask: boolean; memory: { agentName: string; userName: string; primaryNeed: string }; nextAction: "none" | "offer_call" | "offer_google" | "onboarding_complete" };
+  const updatedProfile: OnboardingState = {
+    ...body.profile,
+    agentName: turn.memory.agentName || body.profile.agentName,
+    userName: turn.memory.userName || body.profile.userName,
+    primaryNeed: turn.memory.primaryNeed || body.profile.primaryNeed,
+    callStatus: "ended",
+    googleStatus: turn.nextAction === "offer_google" && body.profile.googleStatus === "not_asked" ? "offered" : body.profile.googleStatus,
+  };
+  try {
+    await saveVoiceSnapshot({ deviceId: body.deviceId, sessionId: body.sessionId }, body.messages, updatedProfile);
+  } catch {
+    return NextResponse.json({ error: "Voice conversation could not be saved." }, { status: 503 });
+  }
+  return NextResponse.json(turn);
 }
