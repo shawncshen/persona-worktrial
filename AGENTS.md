@@ -138,3 +138,5 @@ Style the inline “Call” and “Keep texting” choices like native iMessage 
 Opening a voice call is an outgoing call from the user to the agent, never an incoming call. Show an iPhone-style active call stage with the agent avatar, chosen name, connection state or elapsed call timer, and only one centered red hang-up button at the bottom. Do not show answer, decline, mute, “wants to get to know you,” continue-by-text, or visible transcript copy in the call stage.
 
 Chat messages must render bullet content as semantic lists. Each bullet appears on its own line with clear indentation and vertical spacing, including when model output supplies inline bullet separators.
+
+The evaluator memory page is titled “What the agent learned from onboarding.” Present learned onboarding fields in one clean table-style chart rather than separate cards. Do not show the Conversation statistics card or the approval/reset footnote.

@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, MessageCircle, Phone } from "lucide-react";
-import { ONBOARDING_STORAGE_KEY, type Message, type OnboardingState } from "@/lib/onboarding";
+import { ArrowLeft } from "lucide-react";
+import { ONBOARDING_STORAGE_KEY, type OnboardingState } from "@/lib/onboarding";
 
-type SavedSession = { profile: OnboardingState; messages: Message[] };
+type SavedSession = { profile: OnboardingState };
 
 const emptyProfile: OnboardingState = {
   agentName: "",
@@ -16,7 +16,7 @@ const emptyProfile: OnboardingState = {
 };
 
 export default function MemoryPage() {
-  const [session, setSession] = useState<SavedSession>({ profile: emptyProfile, messages: [] });
+  const [session, setSession] = useState<SavedSession>({ profile: emptyProfile });
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function MemoryPage() {
     setReady(true);
   }, []);
 
-  const { profile, messages } = session;
+  const { profile } = session;
   const learned = [
     { label: "Agent name", value: profile.agentName, detail: "The identity you chose" },
     { label: "Your name", value: profile.userName, detail: "How I should address you" },
@@ -52,36 +52,24 @@ export default function MemoryPage() {
 
       <section className="memory-intro">
         <p className="eyebrow">Agent memory</p>
-        <h1>What I know about you.</h1>
+        <h1>What the agent learned from onboarding</h1>
         <p>This is the working context I use across text and voice. You stay in control of it.</p>
       </section>
 
-      <section className="memory-grid" aria-live="polite">
-        <article className="memory-card memory-card-wide">
-          <div className="memory-card-heading"><MessageCircle size={19} /><h2>Learned in conversation</h2></div>
-          <div className="memory-facts">
+      <section className="memory-chart" aria-live="polite" aria-label="What the agent learned">
+        <table>
+          <thead><tr><th scope="col">Memory</th><th scope="col">What the agent learned</th><th scope="col">How it is used</th></tr></thead>
+          <tbody>
             {learned.map((item) => (
-              <div className="memory-fact" key={item.label}>
-                <span>{item.label}</span>
-                <strong>{ready && item.value ? item.value : "Not learned yet"}</strong>
-                <small>{item.detail}</small>
-              </div>
+              <tr key={item.label}>
+                <th scope="row">{item.label}</th>
+                <td>{ready && item.value ? item.value : "Not learned yet"}</td>
+                <td>{item.detail}</td>
+              </tr>
             ))}
-          </div>
-        </article>
-
-        <article className="memory-card">
-          <div className="memory-card-heading"><Phone size={19} /><h2>Conversation</h2></div>
-          <dl className="memory-list">
-            <div><dt>Current channel</dt><dd>Text</dd></div>
-            <div><dt>Voice status</dt><dd>{profile.callStatus.replaceAll("_", " ")}</dd></div>
-            <div><dt>Messages remembered</dt><dd>{messages.length}</dd></div>
-          </dl>
-        </article>
-
+          </tbody>
+        </table>
       </section>
-
-      <p className="memory-footnote">Important actions still require your approval. You can reset this prototype from the conversation.</p>
     </main>
   );
 }
