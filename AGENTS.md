@@ -77,6 +77,8 @@ The current prototype must remain fully usable without API credentials. It uses 
 
 Do not use Twilio for the initial prototype. Twilio is only necessary if the scope changes to actual telephone numbers. The assignment explicitly permits a browser voice simulator.
 
+The onboarding conversation is model-driven through the OpenAI Responses API with Structured Outputs. The model returns both a natural reply and a structured memory update plus the next suggested interface action. Do not reintroduce a deterministic question tree as the main conversation engine.
+
 ## Shared Agent and State Model
 
 Text and voice may use separate API sessions, but they must behave as the same agent. Both channels share:

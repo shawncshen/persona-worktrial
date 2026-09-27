@@ -3,7 +3,7 @@
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUp, CalendarDays, Check, Mail, Mic, MicOff, Phone, PhoneOff, Plus, ShieldCheck, Volume2 } from "lucide-react";
-import { extractFacts, nextReply, ONBOARDING_STORAGE_KEY, type Message, type OnboardingState } from "@/lib/onboarding";
+import { mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Message, type OnboardingState } from "@/lib/onboarding";
 
 type ModelContext = {
   registerTool: (tool: {
@@ -77,24 +77,38 @@ export function PersonaOnboarding() {
     }, delay);
   };
 
-  const sendText = (rawText: string) => {
+  const requestAgentTurn = async (nextMessages: Message[], currentProfile: OnboardingState, channel: "text" | "voice") => {
+    const response = await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: nextMessages, profile: currentProfile, channel }),
+    });
+    if (!response.ok) throw new Error("Agent response failed");
+    return await response.json() as AgentTurn;
+  };
+
+  const sendText = async (rawText: string) => {
     const text = rawText.trim();
     if (!text || typing) return;
-    const next = extractFacts(text, profile);
-    const shouldOfferGoogle = Boolean(next.userName && next.primaryNeed && profile.googleStatus === "not_asked");
+    const userMessage: Message = { id: crypto.randomUUID(), role: "user", text };
+    const nextMessages = [...messages, userMessage];
     setInput("");
-    setMessages((items) => [...items, { id: crypto.randomUUID(), role: "user", text }]);
-    setProfile({
-      ...next,
-      callStatus: next.agentName && next.callStatus === "not_offered" ? "offered" : next.callStatus,
-      googleStatus: shouldOfferGoogle ? "offered" : next.googleStatus,
-    });
-    addAgentMessage(nextReply(profile, next));
+    setMessages(nextMessages);
+    setTyping(true);
+    try {
+      const turn = await requestAgentTurn(nextMessages, profile, "text");
+      setProfile((current) => mergeAgentTurn(current, turn));
+      setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: turn.reply }]);
+    } catch {
+      setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: "I lost my train of thought for a second. Try sending that again?" }]);
+    } finally {
+      setTyping(false);
+    }
   };
 
   const submitText = (event: FormEvent) => {
     event.preventDefault();
-    sendText(input);
+    void sendText(input);
   };
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -158,15 +172,21 @@ export function PersonaOnboarding() {
     recognition.lang = "en-US";
     setCallListening(true);
     setCallError("");
-    recognition.onresult = (event) => {
+    recognition.onresult = async (event) => {
       const transcript = event.results[0]?.[0]?.transcript?.trim();
       if (!transcript) return;
-      const next = extractFacts(transcript, profile);
-      setProfile({ ...next, callStatus: "ended", googleStatus: next.userName && next.primaryNeed ? "offered" : next.googleStatus });
-      setMessages((items) => [...items, { id: crypto.randomUUID(), role: "user", text: transcript }]);
-      const reply = nextReply(profile, next);
-      setCallCaption(reply);
-      speak(reply);
+      const userMessage: Message = { id: crypto.randomUUID(), role: "user", text: transcript };
+      const nextMessages = [...messages, userMessage];
+      setMessages(nextMessages);
+      try {
+        const turn = await requestAgentTurn(nextMessages, profile, "voice");
+        setProfile((current) => ({ ...mergeAgentTurn(current, turn), callStatus: "ended" }));
+        setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: turn.reply }]);
+        setCallCaption(turn.reply);
+        speak(turn.reply);
+      } catch {
+        setCallError("I lost my train of thought. Try again, or keep going by text.");
+      }
     };
     recognition.onerror = () => setCallError("I couldn’t hear that clearly. Try again, or keep going by text.");
     recognition.onend = () => setCallListening(false);
@@ -216,7 +236,7 @@ export function PersonaOnboarding() {
       execute(value) {
         const message = typeof value === "object" && value !== null && "message" in value ? String((value as { message: unknown }).message).trim() : "";
         if (!message || message.length > 500) throw new Error("Message must contain 1 to 500 characters.");
-        sendText(message);
+        void sendText(message);
         return { accepted: true, agentName: profile.agentName || null };
       },
     }, { signal: lifecycle.signal });
