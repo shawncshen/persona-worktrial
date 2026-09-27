@@ -119,6 +119,8 @@ The page-level privacy note beneath the conversation panel has been removed from
 
 Voice calls and text chat are separate presentation channels. Realtime voice transcripts must not be appended to the visible text thread or followed by a text recap. Persist the full voice transcript and the latest structured onboarding profile in server-side D1 storage; the call overlay may show only the current live caption. Text chat remains device-local for the credential-free demo.
 
+Message reactions are reserved for accepted actions. Refusals, inability statements, hypotheticals, ordinary conversation, and unperformed workarounds receive no reaction. Accepted actions use 👍 by default, with one more contextually obvious emoji allowed when it clearly fits the task, such as 🎂 for an accepted birthday request.
+
 The page canvas uses a uniform bright white background. Keep the chat panel, message bubbles, controls, and their existing colors and shadows unchanged.
 
 The header tagline “Your personal intelligence” and the intro eyebrow “Meet your Persona” have been removed to keep the first viewport more minimal.

@@ -10,10 +10,11 @@ type RequestBody = {
 const responseSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["reply", "acknowledgedTask", "memory", "nextAction"],
+  required: ["reply", "acknowledgedTask", "reaction", "memory", "nextAction"],
   properties: {
     reply: { type: "string", minLength: 1, maxLength: 500 },
     acknowledgedTask: { type: "boolean" },
+    reaction: { type: "string", maxLength: 12 },
     memory: {
       type: "object",
       additionalProperties: false,
@@ -43,7 +44,11 @@ When the user says something that conflicts with a durable fact already in memor
 
 Use nextAction to let the interface offer a short voice call after you have been named, offer Google only after you understand a need that Gmail or Calendar could support, and mark onboarding_complete when you know the agent name, user name, and primary need and Google has been addressed or is unnecessary.
 
-Return the complete current memory in every response. Preserve known values unless the user clearly corrects them. Set acknowledgedTask to true only when the user explicitly asks you to do something and your reply accepts or acknowledges that task. Otherwise set it to false. Keep replies warm, concise, and suitable for an iMessage conversation.`;
+Return the complete current memory in every response. Preserve known values unless the user clearly corrects them.
+
+Set acknowledgedTask to true only when the user explicitly requests an action and your reply commits to performing that request, or commits to an actionable alternative you can actually perform. A refusal, inability, explanation, hypothetical, question, preference, correction, or unperformed workaround is not an acknowledgement: set acknowledgedTask to false.
+
+Set reaction to an empty string whenever acknowledgedTask is false. When acknowledgedTask is true, return exactly one emoji. Use 👍 by default. Prefer a more contextually obvious emoji only when it clearly fits the accepted task, such as 🎂 for an accepted birthday request or 📅 for accepted scheduling. Never react merely because the user's message contains an emoji or emotionally salient words. Keep replies warm, concise, and suitable for an iMessage conversation.`;
 
 function outputText(payload: { output_text?: string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }> }) {
   if (payload.output_text) return payload.output_text;

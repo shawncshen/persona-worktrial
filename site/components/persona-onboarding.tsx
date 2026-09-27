@@ -122,7 +122,7 @@ export function PersonaOnboarding() {
       const turn = await requestAgentTurn(nextMessages, profile, "text");
       setProfile((current) => mergeAgentTurn(current, turn));
       setMessages((items) => [
-        ...items.map((message) => turn.acknowledgedTask && message.id === userMessage.id ? { ...message, reaction: "thumbs_up" as const } : message),
+        ...items.map((message) => turn.acknowledgedTask && message.id === userMessage.id ? { ...message, reaction: turn.reaction || "👍" } : message),
         { id: crypto.randomUUID(), role: "agent", text: turn.reply },
       ]);
     } catch {
@@ -365,7 +365,7 @@ export function PersonaOnboarding() {
             <div key={message.id} className={`bubble-row ${message.role === "user" ? "outgoing" : "incoming"}`}>
               <div className="message-bubble-wrap">
                 <div className="message-bubble">{message.text.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
-                {message.reaction === "thumbs_up" && <span className="message-reaction" aria-label="Agent reacted with thumbs up">👍</span>}
+                {message.reaction && <span className="message-reaction" aria-label={`Agent reacted with ${message.reaction === "thumbs_up" ? "thumbs up" : message.reaction}`}>{message.reaction === "thumbs_up" ? "👍" : message.reaction}</span>}
               </div>
             </div>
           ))}
