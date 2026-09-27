@@ -470,7 +470,7 @@ export function PersonaOnboarding() {
 
       <section id="conversation" className="message-shell" aria-label="Persona onboarding conversation" ref={shellRef}>
         <header className="message-header">
-          <button type="button" className="chat-reset-button" onClick={resetDemo}>Start over</button>
+          <button type="button" className="chat-reset-button" onClick={resetDemo}>Restart Session</button>
           <div className="contact-identity">
             <div className="contact-avatar" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
             <strong>{agentLabel}</strong>
