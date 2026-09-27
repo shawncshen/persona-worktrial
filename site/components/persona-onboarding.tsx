@@ -150,7 +150,7 @@ export function PersonaOnboarding() {
   const answerCall = () => {
     setCallActive(true);
     const greeting = profile.userName
-      ? `Hey ${profile.userName}, it’s ${profile.agentName}. I remember where we left off. What would you like to focus on?`
+      ? `Hey ${profile.userName}, it’s ${profile.agentName}. Let’s continue where we left off.`
       : `Hey, it’s ${profile.agentName}. What should I call you, and what could you use a hand with?`;
     setCallCaption(greeting);
     speak(greeting);
