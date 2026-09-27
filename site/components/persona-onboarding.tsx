@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowUp, CalendarDays, Check, Mail, Mic, MicOff, Phone, PhoneOff, Plus, ShieldCheck, Volume2 } from "lucide-react";
-import { extractFacts, nextReply, type Message, type OnboardingState } from "@/lib/onboarding";
+import { extractFacts, nextReply, ONBOARDING_STORAGE_KEY, type Message, type OnboardingState } from "@/lib/onboarding";
 
 type ModelContext = {
   registerTool: (tool: {
@@ -15,7 +16,6 @@ type ModelContext = {
   }, options?: { signal?: AbortSignal }) => void | Promise<void>;
 };
 
-const STORAGE_KEY = "persona-onboarding-v1";
 const initialMessages: Message[] = [{
   id: "welcome",
   role: "agent",
@@ -42,7 +42,7 @@ export function PersonaOnboarding() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    const saved = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as { profile: OnboardingState; messages: Message[] };
@@ -50,13 +50,13 @@ export function PersonaOnboarding() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setProfile(parsed.profile);
         setMessages(parsed.messages);
-      } catch { window.localStorage.removeItem(STORAGE_KEY); }
+      } catch { window.localStorage.removeItem(ONBOARDING_STORAGE_KEY); }
     }
     setReady(true);
   }, []);
 
   useEffect(() => {
-    if (ready) window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ profile, messages }));
+    if (ready) window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ profile, messages }));
   }, [messages, profile, ready]);
 
   useEffect(() => {
@@ -227,7 +227,7 @@ export function PersonaOnboarding() {
   }, [profile, typing]);
 
   const resetDemo = () => {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(ONBOARDING_STORAGE_KEY);
     setProfile(initialState);
     setMessages(initialMessages);
     setInput("");
@@ -245,7 +245,10 @@ export function PersonaOnboarding() {
           <span className="wordmark-sheen" aria-hidden="true">persona</span>
         </button>
         <p>Your personal intelligence</p>
-        <button type="button" className="quiet-button" onClick={resetDemo}>Start over</button>
+        <div className="header-actions">
+          <Link className="memory-link" href="/memory">What I know</Link>
+          <button type="button" className="quiet-button" onClick={resetDemo}>Start over</button>
+        </div>
       </header>
 
       <section className="intro-copy" aria-labelledby="page-title">

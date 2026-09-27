@@ -25,6 +25,7 @@ Users may move into the main experience early when they already have a clear tas
 - Preserve context and progress across text, voice, hangups, refreshes, and resumed sessions.
 - Treat text and voice as two channels for the same logical agent identity.
 - Demonstrate a personalized first useful action as early as possible.
+- Include a separate evaluator-friendly memory page that transparently shows what the agent has learned, the shared conversation state, and connected services.
 - Ask for personal information only when it has a clear benefit. Birthday is optional and should not block completion.
 - Generate an agent email alias after the agent is named rather than asking the user to supply one. A demonstration of the agent emailing someone is a useful post-onboarding moment.
 - Gmail is the primary integration. Spotify or other integrations are optional extensions and should not distract from the required experience.

@@ -1,5 +1,7 @@
 export type Message = { id: string; role: "agent" | "user"; text: string };
 
+export const ONBOARDING_STORAGE_KEY = "persona-onboarding-v1";
+
 export type OnboardingState = {
   agentName: string;
   userName: string;
