@@ -1,0 +1,1 @@
+ALTER TABLE `onboarding_profiles` ADD `user_email` text DEFAULT '' NOT NULL;

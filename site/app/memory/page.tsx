@@ -10,6 +10,7 @@ type SavedSession = { profile: OnboardingState; messages: Message[] };
 const emptyProfile: OnboardingState = {
   agentName: "",
   userName: "",
+  userEmail: "",
   primaryNeed: "",
   callStatus: "not_offered",
   googleStatus: "not_asked",
@@ -37,6 +38,7 @@ export default function MemoryPage() {
   const learned = [
     { label: "Agent name", value: profile.agentName, detail: "The identity you chose" },
     { label: "Your name", value: profile.userName, detail: "How I should address you" },
+    { label: "Your email", value: profile.userEmail, detail: "The account I should connect with" },
     { label: "What matters now", value: profile.primaryNeed, detail: "The first thing you want help with" },
   ];
 

@@ -10,6 +10,7 @@ The onboarding must attempt to collect:
 
 - A user-chosen name for the agent
 - The user's name
+- The user's email address
 - A connected Gmail account
 
 The experience must attempt to use a voice call to collect everything except the agent's name. It must also work through text and recover gracefully from errors such as a declined call, hangup, disconnection, interruption, contradictory answers, skipped questions, or refusal to connect Gmail.
@@ -41,7 +42,7 @@ Users may move into the main experience early when they already have a clear tas
 - Open with exactly: `welcome to persona :)` followed by `I'm your personal agent, what do you want to name me?` on a new paragraph.
 - Start in text and invite the user to name the agent.
 - After naming, let the agent introduce itself and offer text or voice naturally.
-- Learn the user's name and primary need conversationally.
+- Learn the user's name, email address, and primary need conversationally. Ask for the email naturally and never invent or infer it.
 - If a user supplies several required details in one message, recognize all of them and skip redundant questions.
 - Present Google connection only when its value is clear in the conversation.
 - If a voice call ends unexpectedly, save all captured information and continue in text without asking the user to repeat it.
@@ -50,7 +51,7 @@ Users may move into the main experience early when they already have a clear tas
 - When resuming a voice conversation with known names, say `Hey [user], it’s [agent]. Let’s continue where we left off.`
 - If a new statement conflicts with durable memory or a clear earlier statement, identify the mismatch conversationally and ask which version is current before changing memory. Do not treat harmless elaborations or compatible facts as contradictions.
 - When a user explicitly asks the agent to do something, add a thumbs-up reaction to that user message only when the model's reply acknowledges or accepts the task. Do not react to ordinary answers or unaccepted requests.
-- Announce `You're done with onboarding. Let me know if you need anything from me!` exactly once after the agent has a name, knows the user's name and primary need, has attempted to offer or complete a voice call, and Google has been either connected or explicitly declined.
+- Announce `You're done with onboarding. Let me know if you need anything from me!` exactly once after the agent has a name, knows the user's name, email address, and primary need, has attempted to offer or complete a voice call, and Google has been either connected or explicitly declined.
 - User-facing chat copy must never use an em dash. This is a strict project rule.
 - The text composer supports both Enter and Command+Enter to send a message.
 
@@ -105,6 +106,7 @@ Track structured onboarding state separately from free-form conversation, includ
 
 - Agent name
 - User name
+- User email
 - Primary need
 - Gmail connection status
 - Completed information fields

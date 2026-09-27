@@ -22,7 +22,7 @@ const initialMessages: Message[] = [{
   text: "welcome to persona :)\n\nI'm your personal agent, what do you want to name me?",
 }];
 const initialState: OnboardingState = {
-  agentName: "", userName: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked", onboardingComplete: false,
+  agentName: "", userName: "", userEmail: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked", onboardingComplete: false,
 };
 const DEVICE_STORAGE_KEY = "persona-device-id";
 
@@ -99,7 +99,7 @@ export function PersonaOnboarding() {
         const parsed = JSON.parse(saved) as { profile: OnboardingState; messages: Message[] };
         // Hydrate the durable demo state after the client mounts.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setProfile({ ...parsed.profile, onboardingComplete: Boolean(parsed.profile.onboardingComplete) });
+        setProfile({ ...parsed.profile, userEmail: parsed.profile.userEmail || "", onboardingComplete: Boolean(parsed.profile.onboardingComplete) });
         setMessages(parsed.messages);
       } catch { window.localStorage.removeItem(ONBOARDING_STORAGE_KEY); }
     }

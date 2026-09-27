@@ -14,6 +14,7 @@ export const onboardingProfiles = sqliteTable("onboarding_profiles", {
   deviceId: text("device_id").notNull(),
   agentName: text("agent_name").notNull().default(""),
   userName: text("user_name").notNull().default(""),
+  userEmail: text("user_email").notNull().default(""),
   primaryNeed: text("primary_need").notNull().default(""),
   updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
 });
