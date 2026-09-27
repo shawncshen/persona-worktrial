@@ -26,6 +26,14 @@ const initialState: OnboardingState = {
 };
 const DEVICE_STORAGE_KEY = "persona-device-id";
 
+function nextOnboardingQuestion(profile: OnboardingState) {
+  if (!profile.agentName) return "What do you want to name me?";
+  if (!profile.userName) return "What should I call you?";
+  if (!profile.userEmail) return "What’s the best email address for you?";
+  if (!profile.primaryNeed) return "What’s one thing you’d like my help with?";
+  return "";
+}
+
 function MessageText({ text }: { text: string }) {
   const lines = text.replace(/\s+•\s*/g, "\n• ").split("\n");
   const blocks: Array<{ type: "paragraph" | "list"; content: string[] }> = [];
@@ -267,8 +275,14 @@ export function PersonaOnboarding() {
       });
       if (!response.ok) throw new Error("Voice memory persistence failed");
       const turn = await response.json() as Omit<AgentTurn, "reply">;
-      setProfile((current) => mergeAgentTurn(current, { ...turn, reply: "" }));
-    } catch { setCallError("The call is still active, but I couldn’t save this turn yet."); }
+      const updatedProfile = mergeAgentTurn(profileRef.current, { ...turn, reply: "" });
+      profileRef.current = updatedProfile;
+      setProfile(updatedProfile);
+      return updatedProfile;
+    } catch {
+      setCallError("The call is still active, but I couldn’t save this turn yet.");
+      return profileRef.current;
+    }
   };
 
   const answerCall = async (attempt: number) => {
@@ -408,8 +422,17 @@ export function PersonaOnboarding() {
     setCallOpen(false);
     setCallActive(false);
     setCallListening(false);
-    setProfile((state) => ({ ...state, callStatus: "ended" }));
-    if (voiceMessagesRef.current.length) void saveVoiceMemory(voiceMessagesRef.current);
+    const finishCall = async () => {
+      const savedProfile = voiceMessagesRef.current.length
+        ? await saveVoiceMemory(voiceMessagesRef.current)
+        : profileRef.current;
+      const endedProfile = { ...savedProfile, callStatus: "ended" as const };
+      profileRef.current = endedProfile;
+      setProfile(endedProfile);
+      const nextQuestion = nextOnboardingQuestion(endedProfile);
+      if (nextQuestion) addAgentMessage(nextQuestion, 300);
+    };
+    void finishCall();
   };
 
   useEffect(() => {

@@ -116,6 +116,10 @@ Realtime voice uses the `cedar` voice. Its speaking style is warm, relaxed, casu
 
 Voice startup must expose distinct microphone-permission, connecting, active, and failed states. The hang-up control remains available throughout startup. Permission and connection waits must time out with useful recovery copy, and a canceled or stale attempt must never connect later.
 
+When a voice call ends before onboarding is complete, the agent immediately continues in text by asking the next unanswered onboarding question. Use the freshly persisted voice memory so the agent never asks for information the user already supplied on the call.
+
+If a user jokes, trolls, or gives an obviously unserious answer during a call, the voice agent may respond with one brief natural laugh or playful acknowledgement, then returns in the same response to the pending onboarding question. It must not lecture, argue, or lose the onboarding thread.
+
 Durable `primary_need` memory is one compact description of the user's ongoing need, capped at 160 characters. It must not accumulate transcripts, completed actions, recaps, or activity logs, and it stays in the user's conversational language unless the user changes languages.
 
 Message reactions are reserved for accepted actions. Refusals, inability statements, hypotheticals, ordinary conversation, and unperformed workarounds receive no reaction. Accepted actions use 👍 by default, with one more contextually obvious emoji allowed when it clearly fits the task, such as 🎂 for an accepted birthday request.
