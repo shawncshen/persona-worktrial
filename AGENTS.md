@@ -121,3 +121,5 @@ The header tagline “Your personal intelligence” and the intro eyebrow “Mee
 The onboarding hero now mirrors the Persona Band reference typography and copy: “First AI assistant you can wear. Made to get sh*t done.” followed by “Your Persona remembers what matters and does what you need before you know you need it.” Use the system/SF Pro display stack, medium weight, tight tracking, and 1.06 line height for the headline.
 
 Keep the header actions aligned to the far-right edge, opposite the Persona wordmark. Keep the hero compact near the top of the page. Whenever a user sends a text message, smoothly center the complete conversation panel in the viewport so the chat becomes the visual focus.
+
+Keep the hero headline and supporting copy slightly smaller than the Persona Band reference so the conversation panel begins higher in the viewport. Desktop headline sizing should top out around 68px, with tighter vertical margins and a 16px supporting line.

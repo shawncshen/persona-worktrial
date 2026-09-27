@@ -186,7 +186,7 @@ input:focus-visible {
 }
 
 .intro-copy {
-  margin: clamp(18px, 3vh, 34px) auto clamp(22px, 3vh, 34px);
+  margin: clamp(12px, 2vh, 24px) auto clamp(16px, 2vh, 24px);
   text-align: center;
 }
 
@@ -202,7 +202,7 @@ input:focus-visible {
 .intro-copy h1 {
   margin: 0;
   font-family: -apple-system, system-ui, "SF Pro Display", "SF Pro Text", Inter, "Helvetica Neue", Arial, sans-serif;
-  font-size: clamp(3.75rem, 4.7vw, 5rem);
+  font-size: clamp(3.2rem, 4vw, 4.25rem);
   font-weight: 500;
   letter-spacing: -0.034em;
   line-height: 1.06;
@@ -211,9 +211,9 @@ input:focus-visible {
 .intro-copy h1 span { display: block; }
 
 .intro-copy > p {
-  margin: 24px 0 0;
+  margin: 16px 0 0;
   color: var(--muted);
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 400;
   letter-spacing: -0.005em;
   line-height: 1.5;
@@ -555,9 +555,9 @@ input:focus-visible {
   }
   .site-header { display: flex; width: 100%; justify-content: space-between; }
   .site-header p, .quiet-button { display: none; }
-  .intro-copy { margin: 22px auto 18px; }
-  .intro-copy h1 { font-size: clamp(2rem, 9.6vw, 2.8rem); }
-  .intro-copy > p { margin-top: 18px; font-size: .92rem; line-height: 1.4; }
+  .intro-copy { margin: 14px auto 12px; }
+  .intro-copy h1 { font-size: clamp(1.9rem, 8.8vw, 2.5rem); }
+  .intro-copy > p { margin-top: 12px; font-size: .88rem; line-height: 1.4; }
   .desktop-break { display: none; }
   .message-shell { flex: 1; min-height: 0; height: 0; grid-template-rows: auto minmax(0, 1fr) auto; border-radius: 24px; }
   .message-header { min-height: 68px; padding: 10px 14px; }
