@@ -2,15 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp, CalendarDays, Check, Mail, Mic, MicOff, Phone, PhoneOff, Plus, ShieldCheck, Volume2 } from "lucide-react";
-
-type Message = { id: string; role: "agent" | "user"; text: string };
-type OnboardingState = {
-  agentName: string;
-  userName: string;
-  primaryNeed: string;
-  callStatus: "not_offered" | "offered" | "declined" | "ended";
-  googleStatus: "not_asked" | "offered" | "connected" | "declined";
-};
+import { extractFacts, nextReply, type Message, type OnboardingState } from "@/lib/onboarding";
 
 type ModelContext = {
   registerTool: (tool: {
@@ -32,38 +24,6 @@ const initialMessages: Message[] = [{
 const initialState: OnboardingState = {
   agentName: "", userName: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked",
 };
-
-function cleanName(value: string) {
-  return value.replace(/[.!?].*$/, "").replace(/^(please\s+)?(call\s+(yourself|you)|your name is|you are|you're)\s+/i, "").trim().split(/\s+/).slice(0, 3).join(" ");
-}
-
-function extractFacts(input: string, current: OnboardingState) {
-  const next = { ...current };
-  const agentMatch = input.match(/(?:call (?:yourself|you)|your name is|you(?:'re| are))\s+([\p{L}\p{N}'-]+)/iu);
-  const userMatch = input.match(/(?:i(?:'m| am)|call me|my name is)\s+([\p{L}'-]+)/iu);
-  const needMatch = input.match(/(?:need|want|could use)\s+(?:some\s+)?help\s+(?:with\s+)?(.+?)(?:[.!?]|$)/i);
-  if (agentMatch?.[1]) next.agentName = cleanName(agentMatch[1]);
-  if (userMatch?.[1]) next.userName = cleanName(userMatch[1]);
-  if (needMatch?.[1]) next.primaryNeed = needMatch[1].trim();
-  if (!next.agentName) {
-    const direct = cleanName(input);
-    if (direct && direct.length <= 28 && !/\b(help|what|why|how|no|yes)\b/i.test(direct)) next.agentName = direct;
-  }
-  return next;
-}
-
-function nextReply(previous: OnboardingState, next: OnboardingState) {
-  const namedNow = !previous.agentName && next.agentName;
-  const userNow = !previous.userName && next.userName;
-  const needNow = !previous.primaryNeed && next.primaryNeed;
-  if (namedNow && userNow && needNow) return `Nice to meet you, ${next.userName}. ${next.agentName} works for me. I can already help with ${next.primaryNeed}. Want to connect Google so I can get started?`;
-  if (namedNow) return `${next.agentName} it is. Want to talk for a minute, or keep texting here?`;
-  if (!next.agentName) return "I’m listening. What name feels right for me?";
-  if (!next.userName) return "What should I call you?";
-  if (!next.primaryNeed) return `Good to meet you, ${next.userName}. What’s one thing you wish ${next.agentName} could take off your plate?`;
-  if (userNow || needNow) return `Got it. I can help with ${next.primaryNeed}. Want to connect Google so I can make that useful right away?`;
-  return "I’ve got you. Tell me a little more about what would make this genuinely useful.";
-}
 
 export function PersonaOnboarding() {
   const [profile, setProfile] = useState<OnboardingState>(initialState);
