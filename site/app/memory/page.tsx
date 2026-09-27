@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowLeft, MessageCircle, Phone } from "lucide-react";
 import { ONBOARDING_STORAGE_KEY, type Message, type OnboardingState } from "@/lib/onboarding";
@@ -44,11 +43,11 @@ export default function MemoryPage() {
   return (
     <main className="memory-page">
       <header className="memory-header">
-        <Link className="wordmark memory-wordmark" href="/" aria-label="Return to Persona onboarding">
+        <a className="wordmark memory-wordmark" href="/" aria-label="Return to Persona onboarding">
           <span className="wordmark-base">persona</span>
           <span className="wordmark-sheen" aria-hidden="true">persona</span>
-        </Link>
-        <Link className="back-link" href="/"><ArrowLeft size={16} />Back to conversation</Link>
+        </a>
+        <a className="back-link" href="/"><ArrowLeft size={16} />Back to conversation</a>
       </header>
 
       <section className="memory-intro">
