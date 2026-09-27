@@ -138,7 +138,7 @@ Keep the hero headline and supporting copy slightly smaller than the Persona Ban
 
 The conversation header centers the agent identity in an iMessage-style stack: an original friendly human-like 3D assistant portrait with warm ivory styling and a restrained amber accent, with the chosen agent name directly underneath. The person must remain visually distinct from Meta Muse and other existing mascots. Fill the portrait’s entire circular frame with the warm yellow halo, leaving no white ring around the image. Do not show the “Here when you need it” subtitle. Keep the call control aligned on the right.
 
-Style the inline “Call” and “Keep texting” choices like native iMessage actions. Use Apple blue with white text for the primary call action and soft iMessage gray with dark text for the secondary action. Avoid black-and-white button treatments.
+Do not show inline “Call” or “Keep texting” choice buttons in the message thread. Voice remains available through the phone icon in the conversation header, while text remains available through the composer.
 
 Opening a voice call is an outgoing call from the user to the agent, never an incoming call. Show an iPhone-style active call stage with the agent avatar, chosen name, connection state or elapsed call timer, and only one centered red hang-up button at the bottom. Do not show answer, decline, mute, “wants to get to know you,” continue-by-text, or visible transcript copy in the call stage.
 

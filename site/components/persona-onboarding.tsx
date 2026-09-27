@@ -240,11 +240,6 @@ export function PersonaOnboarding() {
     }
   };
 
-  const keepTexting = () => {
-    setProfile((state) => ({ ...state, callStatus: "declined" }));
-    addAgentMessage("Totally fine. We can do everything here. What should I call you?", 300);
-  };
-
   const startCall = () => {
     callAttemptRef.current += 1;
     voiceMessagesRef.current = [];
@@ -473,7 +468,6 @@ export function PersonaOnboarding() {
     setAttachmentError("");
   };
 
-  const showCallChoices = profile.callStatus === "offered" && !profile.userName;
   const agentLabel = profile.agentName || "Your Persona";
 
   return (
@@ -524,12 +518,6 @@ export function PersonaOnboarding() {
             </div>
           ))}
           {typing && <div className="bubble-row incoming" aria-label={`${agentLabel} is typing`}><div className="typing-bubble"><span /><span /><span /></div></div>}
-          {showCallChoices && !typing && (
-            <div className="choice-row" aria-label="Choose how to continue">
-              <button type="button" className="primary-choice" onClick={startCall}><Phone size={16} />Call {profile.agentName}</button>
-              <button type="button" className="secondary-choice" onClick={keepTexting}>Keep texting</button>
-            </div>
-          )}
         </div>
 
         <form className="composer" onSubmit={submitText}>
