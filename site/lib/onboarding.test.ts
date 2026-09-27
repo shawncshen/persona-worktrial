@@ -8,7 +8,6 @@ const current: OnboardingState = {
   userEmail: "",
   primaryNeed: "",
   callStatus: "not_offered",
-  googleStatus: "not_asked",
   onboardingComplete: false,
 };
 
@@ -17,14 +16,13 @@ test("merges model-extracted memory without losing known facts", () => {
     reply: "Good to meet you, Shawn.",
     acknowledgedTask: true,
     memory: { agentName: "", userName: "Shawn", userEmail: "shawn@example.com", primaryNeed: "recruiting emails" },
-    nextAction: "offer_google",
+    nextAction: "none",
   };
   assert.deepEqual(mergeAgentTurn(current, turn), {
     ...current,
     userName: "Shawn",
     userEmail: "shawn@example.com",
     primaryNeed: "recruiting emails",
-    googleStatus: "offered",
   });
 });
 
@@ -47,7 +45,7 @@ test("keeps primary need compact and single-line", () => {
   assert.equal(memory.primaryNeed.includes("\n"), false);
 });
 
-test("finishes only after details, a call attempt, and a Google decision", () => {
+test("finishes only after details and a call attempt", () => {
   assert.equal(isOnboardingReady(current), false);
   assert.equal(isOnboardingReady({
     ...current,
@@ -56,6 +54,5 @@ test("finishes only after details, a call attempt, and a Google decision", () =>
     userEmail: "shawn@example.com",
     primaryNeed: "recruiting follow-ups",
     callStatus: "ended",
-    googleStatus: "connected",
   }), true);
 });

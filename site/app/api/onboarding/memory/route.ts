@@ -19,7 +19,7 @@ const schema = {
         primaryNeed: { type: "string", maxLength: 160 },
       },
     },
-    nextAction: { type: "string", enum: ["none", "offer_call", "offer_google", "onboarding_complete"] },
+    nextAction: { type: "string", enum: ["none", "offer_call", "onboarding_complete"] },
   },
 };
 
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || "gpt-6-astra",
       store: false,
-      instructions: `Extract durable onboarding memory from this voice conversation, including the user's explicitly stated email address. Never invent or infer an email. Preserve known values unless the user clearly resolves a correction. If the latest user statement conflicts with memory and the assistant asks for clarification, keep the old value until the user clarifies. Set acknowledgedTask true only when the latest user message explicitly requests an action and the latest assistant reply accepts it. Choose offer_google only when the user's email is known and Google would clearly help the stated need.
+      instructions: `Extract durable onboarding memory from this voice conversation, including the user's explicitly stated email address. Never invent or infer an email. Preserve known values unless the user clearly resolves a correction. If the latest user statement conflicts with memory and the assistant asks for clarification, keep the old value until the user clarifies. Set acknowledgedTask true only when the latest user message explicitly requests an action and the latest assistant reply accepts it.
 
 primaryNeed must be one short, stable description of what the user wants help with, under 160 characters. It must never become a transcript, recap, activity log, list of turns, or record of completed actions. Keep it in the user's conversational language and never append a stray translation or switch languages unless the user does.`,
       input: [
@@ -57,7 +57,7 @@ primaryNeed must be one short, stable description of what the user wants help wi
     return NextResponse.json({ error: "Voice memory could not be extracted." }, { status: 502 });
   }
   const text = outputText(await response.json());
-  const turn = JSON.parse(text) as { acknowledgedTask: boolean; memory: { agentName: string; userName: string; userEmail: string; primaryNeed: string }; nextAction: "none" | "offer_call" | "offer_google" | "onboarding_complete" };
+  const turn = JSON.parse(text) as { acknowledgedTask: boolean; memory: { agentName: string; userName: string; userEmail: string; primaryNeed: string }; nextAction: "none" | "offer_call" | "onboarding_complete" };
   turn.memory = normalizeMemory(turn.memory);
   const updatedProfile: OnboardingState = {
     ...body.profile,
@@ -66,7 +66,6 @@ primaryNeed must be one short, stable description of what the user wants help wi
     userEmail: turn.memory.userEmail || body.profile.userEmail,
     primaryNeed: turn.memory.primaryNeed || body.profile.primaryNeed,
     callStatus: "ended",
-    googleStatus: turn.nextAction === "offer_google" && body.profile.googleStatus === "not_asked" ? "offered" : body.profile.googleStatus,
   };
   try {
     await saveVoiceSnapshot({ deviceId: body.deviceId, sessionId: body.sessionId }, body.messages, updatedProfile);

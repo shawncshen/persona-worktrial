@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, CalendarDays, Check, FileText, Mail, Mic, Phone, PhoneOff, Plus, ShieldCheck, X } from "lucide-react";
+import { ArrowUp, FileText, Mic, Phone, PhoneOff, Plus, X } from "lucide-react";
 import { isOnboardingReady, mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Attachment, type Message, type OnboardingState } from "@/lib/onboarding";
 import { parseRealtimeVoiceEvent } from "@/lib/voice";
 
@@ -22,7 +22,7 @@ const initialMessages: Message[] = [{
   text: "welcome to persona :)\n\nI'm your personal agent, what do you want to name me?",
 }];
 const initialState: OnboardingState = {
-  agentName: "", userName: "", userEmail: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked", onboardingComplete: false,
+  agentName: "", userName: "", userEmail: "", primaryNeed: "", callStatus: "not_offered", onboardingComplete: false,
 };
 const DEVICE_STORAGE_KEY = "persona-device-id";
 
@@ -72,8 +72,6 @@ export function PersonaOnboarding() {
   const [callError, setCallError] = useState("");
   const [callSeconds, setCallSeconds] = useState(0);
   const [, setCallCaption] = useState("");
-  const [connectorOpen, setConnectorOpen] = useState(false);
-  const [connectorBusy, setConnectorBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -409,21 +407,6 @@ export function PersonaOnboarding() {
     if (voiceMessagesRef.current.length) void saveVoiceMemory(voiceMessagesRef.current);
   };
 
-  const allowGoogle = () => {
-    setConnectorBusy(true);
-    window.setTimeout(() => {
-      setProfile((state) => ({ ...state, googleStatus: "connected" }));
-      setConnectorBusy(false);
-      setConnectorOpen(false);
-      addAgentMessage(`You’re connected. I can now help with ${profile.primaryNeed || "your inbox and calendar"}. Want me to show you where I’d start?`, 350);
-    }, 900);
-  };
-
-  const declineGoogle = () => {
-    setProfile((state) => ({ ...state, googleStatus: "declined" }));
-    addAgentMessage("No problem. I can still help from anything you share here, and you can connect later if you want.", 300);
-  };
-
   useEffect(() => {
     const context = (document as Document & { modelContext?: ModelContext }).modelContext;
     if (!context?.registerTool) return;
@@ -463,7 +446,6 @@ export function PersonaOnboarding() {
   };
 
   const showCallChoices = profile.callStatus === "offered" && !profile.userName;
-  const showGoogleCard = profile.googleStatus === "offered";
   const agentLabel = profile.agentName || "Your Persona";
 
   return (
@@ -520,17 +502,6 @@ export function PersonaOnboarding() {
               <button type="button" className="secondary-choice" onClick={keepTexting}>Keep texting</button>
             </div>
           )}
-          {showGoogleCard && !typing && (
-            <div className="connector-card">
-              <div className="google-mark" aria-hidden="true">G</div>
-              <div><strong>Connect Google</strong><p>Gmail and Calendar, with your permission</p></div>
-              <button type="button" onClick={() => setConnectorOpen(true)}>Allow</button>
-              <button type="button" className="text-action" onClick={declineGoogle}>Not now</button>
-            </div>
-          )}
-          {profile.googleStatus === "connected" && (
-            <div className="connected-card"><Check size={16} /><span>Google connected</span></div>
-          )}
         </div>
 
         <form className="composer" onSubmit={submitText}>
@@ -570,23 +541,6 @@ export function PersonaOnboarding() {
         </div>
       )}
 
-      {connectorOpen && (
-        <div className="connector-backdrop" role="dialog" aria-modal="true" aria-label="Connect Google">
-          <div className="permission-panel">
-            <div className="permission-brand"><span>G</span></div>
-            <p className="permission-kicker">Connect Google</p>
-            <h2>Let {agentLabel} help where it matters.</h2>
-            <p className="permission-lede">Start with read access. Sending or changing anything will always require another clear approval.</p>
-            <div className="permission-list">
-              <div><Mail size={20} /><span><strong>Gmail</strong><small>Find messages and prepare drafts</small></span></div>
-              <div><CalendarDays size={20} /><span><strong>Calendar</strong><small>See events and scheduling conflicts</small></span></div>
-              <div><ShieldCheck size={20} /><span><strong>You stay in control</strong><small>Remove access whenever you want</small></span></div>
-            </div>
-            <button type="button" className="allow-google" onClick={allowGoogle} disabled={connectorBusy}>{connectorBusy ? "Connecting…" : "Allow read access"}</button>
-            <button type="button" className="cancel-google" onClick={() => setConnectorOpen(false)} disabled={connectorBusy}>Not now</button>
-          </div>
-        </div>
-      )}
     </main>
   );
 }

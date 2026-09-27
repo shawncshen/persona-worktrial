@@ -9,7 +9,6 @@ export type OnboardingState = {
   userEmail: string;
   primaryNeed: string;
   callStatus: "not_offered" | "offered" | "declined" | "ended";
-  googleStatus: "not_asked" | "offered" | "connected" | "declined";
   onboardingComplete: boolean;
 };
 
@@ -23,7 +22,7 @@ export type AgentTurn = {
     userEmail: string;
     primaryNeed: string;
   };
-  nextAction: "none" | "offer_call" | "offer_google" | "onboarding_complete";
+  nextAction: "none" | "offer_call" | "onboarding_complete";
 };
 
 const MEMORY_LIMITS = { agentName: 80, userName: 80, userEmail: 254, primaryNeed: 160 } as const;
@@ -40,8 +39,7 @@ export function normalizeMemory(memory: AgentTurn["memory"]): AgentTurn["memory"
 export function isOnboardingReady(profile: OnboardingState): boolean {
   const hasRequiredDetails = Boolean(profile.agentName.trim() && profile.userName.trim() && profile.userEmail.trim() && profile.primaryNeed.trim());
   const callWasAttempted = profile.callStatus !== "not_offered";
-  const googleWasResolved = profile.googleStatus === "connected" || profile.googleStatus === "declined";
-  return hasRequiredDetails && callWasAttempted && googleWasResolved;
+  return hasRequiredDetails && callWasAttempted;
 }
 
 export function mergeAgentTurn(current: OnboardingState, turn: AgentTurn): OnboardingState {
@@ -53,6 +51,5 @@ export function mergeAgentTurn(current: OnboardingState, turn: AgentTurn): Onboa
     userEmail: memory.userEmail || current.userEmail,
     primaryNeed: memory.primaryNeed || current.primaryNeed,
     callStatus: turn.nextAction === "offer_call" && current.callStatus === "not_offered" ? "offered" : current.callStatus,
-    googleStatus: turn.nextAction === "offer_google" && current.googleStatus === "not_asked" ? "offered" : current.googleStatus,
   };
 }

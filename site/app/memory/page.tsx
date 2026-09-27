@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarDays, Check, Circle, Mail, MessageCircle, Phone } from "lucide-react";
+import { ArrowLeft, MessageCircle, Phone } from "lucide-react";
 import { ONBOARDING_STORAGE_KEY, type Message, type OnboardingState } from "@/lib/onboarding";
 
 type SavedSession = { profile: OnboardingState; messages: Message[] };
@@ -13,7 +13,6 @@ const emptyProfile: OnboardingState = {
   userEmail: "",
   primaryNeed: "",
   callStatus: "not_offered",
-  googleStatus: "not_asked",
   onboardingComplete: false,
 };
 
@@ -81,17 +80,6 @@ export default function MemoryPage() {
           </dl>
         </article>
 
-        <article className="memory-card">
-          <div className="memory-card-heading"><Mail size={19} /><h2>Connections</h2></div>
-          <div className="connection-row">
-            <span className="connection-icon"><Mail size={17} /><CalendarDays size={17} /></span>
-            <span><strong>Google</strong><small>Gmail and Calendar</small></span>
-            <span className={`memory-status ${profile.googleStatus === "connected" ? "connected" : ""}`}>
-              {profile.googleStatus === "connected" ? <Check size={14} /> : <Circle size={11} />}
-              {profile.googleStatus.replaceAll("_", " ")}
-            </span>
-          </div>
-        </article>
       </section>
 
       <p className="memory-footnote">Important actions still require your approval. You can reset this prototype from the conversation.</p>
