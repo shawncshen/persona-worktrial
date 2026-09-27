@@ -60,13 +60,15 @@ Users may move into the main experience early when they already have a clear tas
 
 Preferred stack:
 
-- Next.js for the web application and server endpoints
-- Supabase Postgres for durable user, agent, conversation, onboarding, and connection state
+- Next.js-compatible Vinext for the web application and server endpoints
+- Device-local persistence for the credential-free work-trial demo, with the state model kept ready for a future server database
 - OpenAI Responses API for text interaction
 - OpenAI Realtime API over WebRTC for browser voice interaction
 - Google OAuth for Gmail connection
 - A connector registry that exposes authorized service capabilities as agent tools
-- Vercel for deployment
+- OpenAI Sites for the initial private deployment
+
+The current prototype must remain fully usable without API credentials. It uses a deterministic local conversation engine, browser speech recognition and speech synthesis where supported, and a clearly simulated Google consent completion. Live OpenAI Realtime, server persistence, and real Google OAuth are production integration seams, not prerequisites for evaluating the onboarding flow.
 
 Do not use Twilio for the initial prototype. Twilio is only necessary if the scope changes to actual telephone numbers. The assignment explicitly permits a browser voice simulator.
 
