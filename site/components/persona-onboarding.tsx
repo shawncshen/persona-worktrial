@@ -345,7 +345,7 @@ export function PersonaOnboarding() {
           ? profileRef.current.userName
             ? `Say exactly: "Hey ${profileRef.current.userName}, it’s ${profileRef.current.agentName}. Let’s continue where we left off."`
             : `Say exactly: "Hey, it’s ${profileRef.current.agentName}. What should I call you, and what could you use a hand with?"`
-          : `Say exactly: "Hey! We can start here. What should I call you, and what could you use a hand with?"`;
+          : `Say exactly: "Hey! Before we get started, what do you want to name me?"`;
         channel.send(JSON.stringify({ type: "response.create", response: { instructions: greeting } }));
       });
 

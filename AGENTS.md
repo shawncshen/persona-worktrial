@@ -12,7 +12,7 @@ The onboarding must attempt to collect:
 - The user's name
 - The user's email address, stored as profile memory without connecting Google
 
-The experience must attempt to use a voice call to collect everything except the agent's name. It must also work through text and recover gracefully from errors such as a declined call, hangup, disconnection, interruption, contradictory answers, skipped questions, or refusal to provide information.
+The experience must attempt to use a voice call to collect the onboarding details, including the agent's name when it is still unknown. It must also work through text and recover gracefully from errors such as a declined call, hangup, disconnection, interruption, contradictory answers, skipped questions, or refusal to provide information.
 
 Users may move into the main experience early when they already have a clear task. Do not force a rigid sequence or make the onboarding feel like a form.
 
@@ -34,7 +34,7 @@ Users may move into the main experience early when they already have a clear tas
 ## Conversation Design
 
 - Open with exactly: `welcome to persona :)` followed by `I'm your personal agent, what do you want to name me?` on a new paragraph.
-- Start in text and invite the user to name the agent.
+- Start in text and invite the user to name the agent. If the user starts a call before naming it, the voice agent must ask what the user wants to name it before collecting other onboarding details.
 - After naming, let the agent introduce itself and offer text or voice naturally.
 - Learn the user's name, email address, and primary need conversationally. Ask for the email naturally and never invent or infer it.
 - If a user supplies several required details in one message, recognize all of them and skip redundant questions.
