@@ -271,7 +271,11 @@ export function PersonaOnboarding() {
       </header>
 
       <section className="intro-copy" aria-labelledby="page-title">
-        <h1 id="page-title">Let&apos;s make this personal.</h1>
+        <h1 id="page-title">
+          <span>First AI assistant you can wear.</span>
+          <span>Made to get sh*t done.</span>
+        </h1>
+        <p>Your Persona remembers what matters and does<br className="desktop-break" /> what you need before you know you need it.</p>
       </section>
 
       <section id="conversation" className="message-shell" aria-label="Persona onboarding conversation">
