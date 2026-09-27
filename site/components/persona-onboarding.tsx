@@ -26,6 +26,37 @@ const initialState: OnboardingState = {
 };
 const DEVICE_STORAGE_KEY = "persona-device-id";
 
+function MessageText({ text }: { text: string }) {
+  const lines = text.replace(/\s+•\s*/g, "\n• ").split("\n");
+  const blocks: Array<{ type: "paragraph" | "list"; content: string[] }> = [];
+
+  for (let index = 0; index < lines.length;) {
+    const line = lines[index].trim();
+    if (!line) { index += 1; continue; }
+
+    if (/^[•*-]\s+/.test(line)) {
+      const items: string[] = [];
+      while (index < lines.length && /^[•*-]\s+/.test(lines[index].trim())) {
+        items.push(lines[index].trim().replace(/^[•*-]\s+/, ""));
+        index += 1;
+      }
+      blocks.push({ type: "list", content: items });
+      continue;
+    }
+
+    const paragraph: string[] = [];
+    while (index < lines.length && lines[index].trim() && !/^[•*-]\s+/.test(lines[index].trim())) {
+      paragraph.push(lines[index].trim());
+      index += 1;
+    }
+    blocks.push({ type: "paragraph", content: [paragraph.join(" ")] });
+  }
+
+  return <>{blocks.map((block, index) => block.type === "list"
+    ? <ul key={`list-${index}`}>{block.content.map((item, itemIndex) => <li key={`${item}-${itemIndex}`}>{item}</li>)}</ul>
+    : <p key={`paragraph-${index}`}>{block.content[0]}</p>)}</>;
+}
+
 export function PersonaOnboarding() {
   const [profile, setProfile] = useState<OnboardingState>(initialState);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -362,7 +393,7 @@ export function PersonaOnboarding() {
           {messages.map((message) => (
             <div key={message.id} className={`bubble-row ${message.role === "user" ? "outgoing" : "incoming"}`}>
               <div className="message-bubble-wrap">
-                <div className="message-bubble">{message.text.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+                <div className="message-bubble"><MessageText text={message.text} /></div>
                 {message.reaction && <span className="message-reaction" aria-label={`Agent reacted with ${message.reaction === "thumbs_up" ? "thumbs up" : message.reaction}`}>{message.reaction === "thumbs_up" ? "👍" : message.reaction}</span>}
               </div>
             </div>

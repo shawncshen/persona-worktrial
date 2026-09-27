@@ -375,6 +375,10 @@ input:focus-visible {
 
 .message-bubble p { margin: 0; }
 .message-bubble p + p { margin-top: 8px; }
+.message-bubble ul { margin: 8px 0; padding-left: 1.25rem; }
+.message-bubble li { padding-left: .1rem; }
+.message-bubble li + li { margin-top: 5px; }
+.message-bubble ul + p { margin-top: 8px; }
 
 .outgoing .message-bubble {
   border-radius: 20px 20px 6px 20px;
