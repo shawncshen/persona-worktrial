@@ -248,22 +248,23 @@ input:focus-visible {
 
 .chat-reset-button {
   justify-self: start;
-  width: 82px;
-  border: 1px solid #d1d1d6;
+  width: 104px;
+  border: 1px solid #1d1d1f;
   border-radius: 999px;
-  background: rgba(255, 255, 255, .88);
-  padding: 9px 6px;
-  color: var(--muted);
+  background: #fff;
+  padding: 10px 10px;
+  color: #1d1d1f;
   font: inherit;
-  font-size: .64rem;
+  font-size: .7rem;
   white-space: nowrap;
   cursor: pointer;
+  transition: background 140ms ease, box-shadow 140ms ease, transform 140ms ease;
 }
 
 .chat-reset-button:hover {
-  background: #fff;
-  border-color: #b9b9bf;
-  color: var(--ink);
+  background: #f2f2f7;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, .08);
+  transform: translateY(-1px);
 }
 
 .message-header .icon-button { justify-self: end; }

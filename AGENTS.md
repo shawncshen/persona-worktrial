@@ -75,6 +75,8 @@ Do not use Twilio for the initial prototype. Twilio is only necessary if the sco
 
 The onboarding conversation is model-driven through the OpenAI Responses API with Structured Outputs. The model returns both a natural reply and a structured memory update plus the next suggested interface action. Do not reintroduce a deterministic question tree as the main conversation engine.
 
+All Responses API calls use `service_tier: "fast"` so text replies and voice-memory extraction opt into OpenAI Fast mode. Realtime WebRTC calls keep their native low-latency configuration.
+
 ## Shared Agent and State Model
 
 Text and voice may use separate API sessions, but they must behave as the same agent. Both channels share:
@@ -117,7 +119,7 @@ Durable `primary_need` memory is one compact description of the user's ongoing n
 
 Message reactions are reserved for accepted actions. Refusals, inability statements, hypotheticals, ordinary conversation, and unperformed workarounds receive no reaction. Accepted actions use 👍 by default, with one more contextually obvious emoji allowed when it clearly fits the task, such as 🎂 for an accepted birthday request.
 
-The “Restart session” control lives in the top-left of the conversation header, opposite the call control, while the agent identity remains centered. It is no longer shown in the page-level header. Present it as a compact rounded button with a subtle gray outline and white fill, constrained to the same footprint as the former “Start over” control.
+The “Restart session” control lives in the top-left of the conversation header, opposite the call control, while the agent identity remains centered. It is no longer shown in the page-level header. Present it as a comfortably sized rounded white button with a black outline. On hover, use a restrained light-gray fill, subtle shadow, and one-pixel lift.
 
 The page canvas uses a uniform bright white background. Keep the chat panel, message bubbles, controls, and their existing colors and shadows unchanged.
 
