@@ -41,6 +41,14 @@ export function PersonaOnboarding() {
   const [connectorBusy, setConnectorBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLElement>(null);
+  const peerRef = useRef<RTCPeerConnection | null>(null);
+  const dataChannelRef = useRef<RTCDataChannel | null>(null);
+  const microphoneRef = useRef<MediaStream | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const messagesRef = useRef<Message[]>(initialMessages);
+  const profileRef = useRef<OnboardingState>(initialState);
+  const pendingVoiceUserIdRef = useRef<string | null>(null);
+  const liveTranscriptRef = useRef("");
 
   useEffect(() => {
     const saved = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
@@ -59,6 +67,9 @@ export function PersonaOnboarding() {
   useEffect(() => {
     if (ready) window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ profile, messages }));
   }, [messages, profile, ready]);
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -130,15 +141,6 @@ export function PersonaOnboarding() {
     addAgentMessage("Totally fine. We can do everything here. What should I call you?", 300);
   };
 
-  const speak = (text: string) => {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.02;
-    utterance.pitch = 1.03;
-    window.speechSynthesis.speak(utterance);
-  };
-
   const startCall = () => {
     setCallOpen(true);
     setCallActive(false);
@@ -147,64 +149,110 @@ export function PersonaOnboarding() {
     setCallCaption("");
   };
 
-  const answerCall = () => {
-    setCallActive(true);
-    const greeting = profile.userName
-      ? `Hey ${profile.userName}, it’s ${profile.agentName}. Let’s continue where we left off.`
-      : `Hey, it’s ${profile.agentName}. What should I call you, and what could you use a hand with?`;
-    setCallCaption(greeting);
-    speak(greeting);
+  const saveVoiceMemory = async (voiceMessages: Message[], userMessageId: string | null) => {
+    try {
+      const response = await fetch("/api/onboarding/memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: voiceMessages, profile: profileRef.current }),
+      });
+      if (!response.ok) return;
+      const turn = await response.json() as Omit<AgentTurn, "reply">;
+      setProfile((current) => mergeAgentTurn(current, { ...turn, reply: "" }));
+      if (turn.acknowledgedTask && userMessageId) {
+        setMessages((items) => items.map((message) => message.id === userMessageId ? { ...message, reaction: "thumbs_up" } : message));
+      }
+    } catch { /* The transcript remains available even if structured extraction fails. */ }
   };
 
-  const captureVoice = () => {
-    type SpeechResult = { 0: { transcript: string } };
-    type Recognition = {
-      continuous: boolean;
-      interimResults: boolean;
-      lang: string;
-      start: () => void;
-      onresult: ((event: { results: ArrayLike<SpeechResult> }) => void) | null;
-      onerror: (() => void) | null;
-      onend: (() => void) | null;
-    };
-    const voiceWindow = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
-    const VoiceRecognition = voiceWindow.SpeechRecognition || voiceWindow.webkitSpeechRecognition;
-    if (!VoiceRecognition) {
-      setCallError("Voice input is not available in this browser. You can keep going by text.");
-      return;
-    }
-    const recognition = new VoiceRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = "en-US";
-    setCallListening(true);
+  const answerCall = async () => {
     setCallError("");
-    recognition.onresult = async (event) => {
-      const transcript = event.results[0]?.[0]?.transcript?.trim();
-      if (!transcript) return;
-      const userMessage: Message = { id: crypto.randomUUID(), role: "user", text: transcript };
-      const nextMessages = [...messages, userMessage];
-      setMessages(nextMessages);
-      try {
-        const turn = await requestAgentTurn(nextMessages, profile, "voice");
-        setProfile((current) => ({ ...mergeAgentTurn(current, turn), callStatus: "ended" }));
-        setMessages((items) => [
-          ...items.map((message) => turn.acknowledgedTask && message.id === userMessage.id ? { ...message, reaction: "thumbs_up" as const } : message),
-          { id: crypto.randomUUID(), role: "agent", text: turn.reply },
-        ]);
-        setCallCaption(turn.reply);
-        speak(turn.reply);
-      } catch {
-        setCallError("I lost my train of thought. Try again, or keep going by text.");
-      }
-    };
-    recognition.onerror = () => setCallError("I couldn’t hear that clearly. Try again, or keep going by text.");
-    recognition.onend = () => setCallListening(false);
-    recognition.start();
+    setCallCaption("Connecting securely…");
+    try {
+      const peer = new RTCPeerConnection();
+      const audio = document.createElement("audio");
+      audio.autoplay = true;
+      peer.ontrack = (event) => { audio.srcObject = event.streams[0]; };
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+      const channel = peer.createDataChannel("oai-events");
+
+      peerRef.current = peer;
+      dataChannelRef.current = channel;
+      microphoneRef.current = stream;
+      remoteAudioRef.current = audio;
+
+      channel.addEventListener("message", (event) => {
+        const serverEvent = JSON.parse(event.data) as { type?: string; transcript?: string; delta?: string; error?: { message?: string } };
+        if (serverEvent.type === "conversation.item.input_audio_transcription.completed" && serverEvent.transcript?.trim()) {
+          const userMessage: Message = { id: crypto.randomUUID(), role: "user", text: serverEvent.transcript.trim() };
+          pendingVoiceUserIdRef.current = userMessage.id;
+          messagesRef.current = [...messagesRef.current, userMessage];
+          setMessages(messagesRef.current);
+        }
+        if (serverEvent.type === "response.output_audio_transcript.delta") {
+          liveTranscriptRef.current += serverEvent.delta || "";
+          setCallCaption(liveTranscriptRef.current);
+        }
+        if (serverEvent.type === "response.output_audio_transcript.done") {
+          const transcript = (serverEvent.transcript || liveTranscriptRef.current).trim();
+          liveTranscriptRef.current = "";
+          if (!transcript) return;
+          setCallCaption(transcript);
+          const agentMessage: Message = { id: crypto.randomUUID(), role: "agent", text: transcript };
+          messagesRef.current = [...messagesRef.current, agentMessage];
+          setMessages(messagesRef.current);
+          void saveVoiceMemory(messagesRef.current, pendingVoiceUserIdRef.current);
+          pendingVoiceUserIdRef.current = null;
+        }
+        if (serverEvent.type === "error") setCallError(serverEvent.error?.message || "The live call hit an error. You can continue by text.");
+      });
+
+      channel.addEventListener("open", () => {
+        setCallActive(true);
+        setCallListening(true);
+        setCallCaption("Listening…");
+        messagesRef.current.slice(-24).forEach((message) => channel.send(JSON.stringify({
+          type: "conversation.item.create",
+          item: {
+            type: "message",
+            role: message.role === "agent" ? "assistant" : "user",
+            content: [{ type: message.role === "agent" ? "output_text" : "input_text", text: message.text }],
+          },
+        })));
+        const greeting = profileRef.current.userName
+          ? `Say exactly: "Hey ${profileRef.current.userName}, it’s ${profileRef.current.agentName}. Let’s continue where we left off."`
+          : `Say exactly: "Hey, it’s ${profileRef.current.agentName}. What should I call you, and what could you use a hand with?"`;
+        channel.send(JSON.stringify({ type: "response.create", response: { instructions: greeting } }));
+      });
+
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      const response = await fetch("/api/realtime", { method: "POST", headers: { "Content-Type": "application/sdp" }, body: offer.sdp });
+      if (!response.ok) throw new Error(await response.text());
+      await peer.setRemoteDescription({ type: "answer", sdp: await response.text() });
+    } catch {
+      microphoneRef.current?.getTracks().forEach((track) => track.stop());
+      peerRef.current?.close();
+      setCallError("I couldn’t start the live call. Check microphone access, or keep going by text.");
+      setCallCaption("");
+    }
+  };
+
+  const toggleMicrophone = () => {
+    const enabled = !callListening;
+    microphoneRef.current?.getAudioTracks().forEach((track) => { track.enabled = enabled; });
+    setCallListening(enabled);
   };
 
   const endCall = () => {
-    window.speechSynthesis?.cancel();
+    dataChannelRef.current?.close();
+    peerRef.current?.close();
+    microphoneRef.current?.getTracks().forEach((track) => track.stop());
+    dataChannelRef.current = null;
+    peerRef.current = null;
+    microphoneRef.current = null;
+    remoteAudioRef.current = null;
     const learned = [profile.userName && `your name is ${profile.userName}`, profile.primaryNeed && `you want help with ${profile.primaryNeed}`].filter(Boolean).join(" and ");
     setCallOpen(false);
     setCallActive(false);
@@ -351,9 +399,9 @@ export function PersonaOnboarding() {
               </div>
             ) : (
               <div className="active-call-actions">
-                <button type="button" className={callListening ? "voice-control listening" : "voice-control"} onClick={captureVoice} disabled={callListening}>
-                  {callListening ? <MicOff size={22} /> : <Mic size={22} />}
-                  <span>{callListening ? "Listening" : "Speak"}</span>
+                <button type="button" className={callListening ? "voice-control listening" : "voice-control"} onClick={toggleMicrophone}>
+                  {callListening ? <Mic size={22} /> : <MicOff size={22} />}
+                  <span>{callListening ? "Mute" : "Unmute"}</span>
                 </button>
                 <button type="button" className="hangup-control" onClick={endCall}><PhoneOff size={22} /><span>End</span></button>
               </div>
