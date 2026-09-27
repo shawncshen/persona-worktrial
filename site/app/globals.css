@@ -264,7 +264,7 @@ input:focus-visible {
   height: 48px;
   overflow: hidden;
   border-radius: 50%;
-  background: #f7f5ef;
+  background: radial-gradient(circle at 50% 45%, #fffbed 0%, #ffe6a3 100%);
   box-shadow: 0 2px 8px rgba(20, 20, 22, .1);
 }
 
@@ -273,6 +273,7 @@ input:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: scale(1.04);
 }
 
 .contact-identity {
@@ -608,11 +609,11 @@ input:focus-visible {
   overflow: hidden;
   border: 4px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
-  background: #f7f5ef;
+  background: radial-gradient(circle at 50% 45%, #fffbed 0%, #ffe6a3 100%);
   box-shadow: 0 18px 46px rgba(0, 0, 0, .34);
 }
 
-.call-aura img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.call-aura img { display: block; width: 100%; height: 100%; object-fit: cover; transform: scale(1.04); }
 .call-panel h2 { margin: 28px 0 0; color: #fff; font-size: 2.15rem; font-weight: 500; letter-spacing: -.035em; }
 .call-status { margin: 8px 0 0; color: rgba(255,255,255,.62); font-size: .92rem; font-variant-numeric: tabular-nums; }
 .call-error { max-width: 290px; margin: 16px 0 0; color: #ff9a94; font-size: .84rem; line-height: 1.4; }
