@@ -378,9 +378,20 @@ input:focus-visible {
 .typing-bubble span:nth-child(3) { animation-delay: 240ms; }
 
 .choice-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; animation: bubble-in 450ms cubic-bezier(.22,.9,.28,1) both; }
-.primary-choice, .secondary-choice { min-height: 40px; border-radius: 999px; padding: 0 16px; font-size: 0.88rem; font-weight: 600; cursor: pointer; }
-.primary-choice { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #1d1d1f; background: #1d1d1f; color: white; }
-.secondary-choice { border: 1px solid #d2d2d7; background: white; }
+.primary-choice, .secondary-choice {
+  min-height: 40px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 17px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 140ms ease, transform 140ms cubic-bezier(.16,1,.3,1);
+}
+.primary-choice { display: inline-flex; align-items: center; gap: 7px; background: var(--ios-blue); color: white; }
+.secondary-choice { background: #e9e9eb; color: #1d1d1f; }
+.primary-choice:hover, .secondary-choice:hover { filter: brightness(.97); }
+.primary-choice:active, .secondary-choice:active { transform: scale(.98); }
 
 .connector-card {
   display: grid;
