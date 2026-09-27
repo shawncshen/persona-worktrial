@@ -320,6 +320,25 @@ input:focus-visible {
 .bubble-row { display: flex; margin-top: 8px; animation: bubble-in 420ms cubic-bezier(.22,.9,.28,1) both; }
 .bubble-row.outgoing { justify-content: flex-end; }
 
+.message-bubble-wrap { position: relative; max-width: min(74%, 520px); }
+.message-bubble-wrap .message-bubble { max-width: 100%; }
+.message-reaction {
+  position: absolute;
+  right: 8px;
+  bottom: -13px;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #ededf0;
+  font-size: .78rem;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+}
+.bubble-row:has(.message-reaction) { margin-bottom: 13px; }
+
 .message-bubble {
   max-width: min(74%, 520px);
   border-radius: 20px 20px 20px 6px;

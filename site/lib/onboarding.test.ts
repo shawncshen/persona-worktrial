@@ -13,6 +13,7 @@ const current: OnboardingState = {
 test("merges model-extracted memory without losing known facts", () => {
   const turn: AgentTurn = {
     reply: "Good to meet you, Shawn.",
+    acknowledgedTask: true,
     memory: { agentName: "", userName: "Shawn", primaryNeed: "recruiting emails" },
     nextAction: "offer_google",
   };
@@ -27,6 +28,7 @@ test("merges model-extracted memory without losing known facts", () => {
 test("turn actions reveal the voice choice without overwriting memory", () => {
   const turn: AgentTurn = {
     reply: "Nova feels right. Want to talk or keep texting?",
+    acknowledgedTask: false,
     memory: { agentName: "Nova", userName: "", primaryNeed: "" },
     nextAction: "offer_call",
   };

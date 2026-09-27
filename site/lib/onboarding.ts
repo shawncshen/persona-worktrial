@@ -1,4 +1,4 @@
-export type Message = { id: string; role: "agent" | "user"; text: string };
+export type Message = { id: string; role: "agent" | "user"; text: string; reaction?: "thumbs_up" };
 
 export const ONBOARDING_STORAGE_KEY = "persona-onboarding-v1";
 
@@ -12,6 +12,7 @@ export type OnboardingState = {
 
 export type AgentTurn = {
   reply: string;
+  acknowledgedTask: boolean;
   memory: {
     agentName: string;
     userName: string;

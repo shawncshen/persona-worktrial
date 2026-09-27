@@ -10,9 +10,10 @@ type RequestBody = {
 const responseSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["reply", "memory", "nextAction"],
+  required: ["reply", "acknowledgedTask", "memory", "nextAction"],
   properties: {
     reply: { type: "string", minLength: 1, maxLength: 500 },
+    acknowledgedTask: { type: "boolean" },
     memory: {
       type: "object",
       additionalProperties: false,
@@ -40,7 +41,7 @@ Do not behave like a form or follow a rigid question order. Respond to what the 
 
 Use nextAction to let the interface offer a short voice call after you have been named, offer Google only after you understand a need that Gmail or Calendar could support, and mark onboarding_complete when you know the agent name, user name, and primary need and Google has been addressed or is unnecessary.
 
-Return the complete current memory in every response. Preserve known values unless the user clearly corrects them. Keep replies warm, concise, and suitable for an iMessage conversation.`;
+Return the complete current memory in every response. Preserve known values unless the user clearly corrects them. Set acknowledgedTask to true only when the user explicitly asks you to do something and your reply accepts or acknowledges that task. Otherwise set it to false. Keep replies warm, concise, and suitable for an iMessage conversation.`;
 
 function outputText(payload: { output_text?: string; output?: Array<{ content?: Array<{ type?: string; text?: string }> }> }) {
   if (payload.output_text) return payload.output_text;

@@ -102,7 +102,10 @@ export function PersonaOnboarding() {
     try {
       const turn = await requestAgentTurn(nextMessages, profile, "text");
       setProfile((current) => mergeAgentTurn(current, turn));
-      setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: turn.reply }]);
+      setMessages((items) => [
+        ...items.map((message) => turn.acknowledgedTask && message.id === userMessage.id ? { ...message, reaction: "thumbs_up" as const } : message),
+        { id: crypto.randomUUID(), role: "agent", text: turn.reply },
+      ]);
     } catch {
       setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: "I lost my train of thought for a second. Try sending that again?" }]);
     } finally {
@@ -185,7 +188,10 @@ export function PersonaOnboarding() {
       try {
         const turn = await requestAgentTurn(nextMessages, profile, "voice");
         setProfile((current) => ({ ...mergeAgentTurn(current, turn), callStatus: "ended" }));
-        setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: turn.reply }]);
+        setMessages((items) => [
+          ...items.map((message) => turn.acknowledgedTask && message.id === userMessage.id ? { ...message, reaction: "thumbs_up" as const } : message),
+          { id: crypto.randomUUID(), role: "agent", text: turn.reply },
+        ]);
         setCallCaption(turn.reply);
         speak(turn.reply);
       } catch {
@@ -293,7 +299,10 @@ export function PersonaOnboarding() {
           <p className="time-label">Today 9:41 AM</p>
           {messages.map((message) => (
             <div key={message.id} className={`bubble-row ${message.role === "user" ? "outgoing" : "incoming"}`}>
-              <div className="message-bubble">{message.text.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+              <div className="message-bubble-wrap">
+                <div className="message-bubble">{message.text.split("\n\n").map((paragraph) => <p key={paragraph}>{paragraph}</p>)}</div>
+                {message.reaction === "thumbs_up" && <span className="message-reaction" aria-label="Agent reacted with thumbs up">👍</span>}
+              </div>
             </div>
           ))}
           {typing && <div className="bubble-row incoming" aria-label={`${agentLabel} is typing`}><div className="typing-bubble"><span /><span /><span /></div></div>}
