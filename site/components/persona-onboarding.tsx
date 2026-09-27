@@ -12,6 +12,17 @@ type OnboardingState = {
   googleStatus: "not_asked" | "offered" | "connected" | "declined";
 };
 
+type ModelContext = {
+  registerTool: (tool: {
+    name: string;
+    title: string;
+    description: string;
+    inputSchema: object;
+    annotations: { readOnlyHint: boolean; untrustedContentHint: boolean };
+    execute: (input: unknown) => unknown;
+  }, options?: { signal?: AbortSignal }) => void | Promise<void>;
+};
+
 const STORAGE_KEY = "persona-onboarding-v1";
 const initialMessages: Message[] = [{
   id: "welcome",
@@ -104,9 +115,8 @@ export function PersonaOnboarding() {
     }, delay);
   };
 
-  const submitText = (event: FormEvent) => {
-    event.preventDefault();
-    const text = input.trim();
+  const sendText = (rawText: string) => {
+    const text = rawText.trim();
     if (!text || typing) return;
     const next = extractFacts(text, profile);
     const shouldOfferGoogle = Boolean(next.userName && next.primaryNeed && profile.googleStatus === "not_asked");
@@ -118,6 +128,11 @@ export function PersonaOnboarding() {
       googleStatus: shouldOfferGoogle ? "offered" : next.googleStatus,
     });
     addAgentMessage(nextReply(profile, next));
+  };
+
+  const submitText = (event: FormEvent) => {
+    event.preventDefault();
+    sendText(input);
   };
 
   const keepTexting = () => {
@@ -213,6 +228,32 @@ export function PersonaOnboarding() {
     setProfile((state) => ({ ...state, googleStatus: "declined" }));
     addAgentMessage("No problem. I can still help from anything you share here, and you can connect later if you want.", 300);
   };
+
+  useEffect(() => {
+    const context = (document as Document & { modelContext?: ModelContext }).modelContext;
+    if (!context?.registerTool) return;
+    const lifecycle = new AbortController();
+    const registration = context.registerTool({
+      name: "send_onboarding_message",
+      title: "Message Persona",
+      description: "Send a message through the visible Persona onboarding conversation.",
+      inputSchema: {
+        type: "object",
+        properties: { message: { type: "string", minLength: 1, maxLength: 500 } },
+        required: ["message"],
+        additionalProperties: false,
+      },
+      annotations: { readOnlyHint: false, untrustedContentHint: false },
+      execute(value) {
+        const message = typeof value === "object" && value !== null && "message" in value ? String((value as { message: unknown }).message).trim() : "";
+        if (!message || message.length > 500) throw new Error("Message must contain 1 to 500 characters.");
+        sendText(message);
+        return { accepted: true, agentName: profile.agentName || null };
+      },
+    }, { signal: lifecycle.signal });
+    void Promise.resolve(registration).catch(() => undefined);
+    return () => lifecycle.abort();
+  }, [profile, typing]);
 
   const resetDemo = () => {
     window.localStorage.removeItem(STORAGE_KEY);
