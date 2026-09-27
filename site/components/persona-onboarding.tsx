@@ -86,6 +86,8 @@ export function PersonaOnboarding() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as { profile: OnboardingState; messages: Message[] };
+        // Hydrate the durable demo state after the client mounts.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setProfile(parsed.profile);
         setMessages(parsed.messages);
       } catch { window.localStorage.removeItem(STORAGE_KEY); }
@@ -253,6 +255,8 @@ export function PersonaOnboarding() {
     }, { signal: lifecycle.signal });
     void Promise.resolve(registration).catch(() => undefined);
     return () => lifecycle.abort();
+  // The tool is intentionally re-registered whenever its state snapshot changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, typing]);
 
   const resetDemo = () => {
