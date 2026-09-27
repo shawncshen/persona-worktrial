@@ -186,6 +186,9 @@ export function PersonaOnboarding() {
       setMessages((items) => [
         ...items.map((message) => turn.acknowledgedTask && message.id === userMessage.id ? { ...message, reaction: turn.reaction || "👍" } : message),
         { id: crypto.randomUUID(), role: "agent", text: turn.reply },
+        ...(turn.onboardingFollowUp?.trim()
+          ? [{ id: crypto.randomUUID(), role: "agent" as const, text: turn.onboardingFollowUp.trim() }]
+          : []),
       ]);
     } catch {
       setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: "I lost my train of thought for a second. Try sending that again?" }]);

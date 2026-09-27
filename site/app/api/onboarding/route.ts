@@ -10,9 +10,10 @@ type RequestBody = {
 const responseSchema = {
   type: "object",
   additionalProperties: false,
-  required: ["reply", "acknowledgedTask", "reaction", "memory", "nextAction"],
+  required: ["reply", "onboardingFollowUp", "acknowledgedTask", "reaction", "memory", "nextAction"],
   properties: {
     reply: { type: "string", minLength: 1, maxLength: 500 },
+    onboardingFollowUp: { type: "string", maxLength: 300 },
     acknowledgedTask: { type: "boolean" },
     reaction: { type: "string", maxLength: 12 },
     memory: {
@@ -39,7 +40,9 @@ Your goals are to learn, conversationally:
 3. The user's email address. Ask for it conversationally after learning their name, unless they already supplied it. Never invent or infer it.
 4. One concrete thing they want help with.
 
-Do not behave like a form or follow a rigid question order. Respond to what the user actually says. Extract every useful fact they provide, including several facts in one message, and never ask for known information again. Ask at most one direct question per reply. If the user asks for immediate help, engage with that need first and collect missing details naturally later.
+Do not behave like a form or follow a rigid question order. Respond to what the user actually says. Extract every useful fact they provide, including several facts in one message, and never ask for known information again. Ask at most one direct question per message.
+
+If onboarding is incomplete and the user's latest message is off-topic or asks for immediate help unrelated to supplying onboarding information, answer it naturally in reply first. Then return a separate onboardingFollowUp that gently redirects and asks for exactly one missing detail. The interface displays reply and onboardingFollowUp as two separate message bubbles, so never combine the answer and redirect in reply. Use natural language such as "Let’s get back to setting me up. What would you like to call me?" Choose the next missing detail in this priority: agent name, user name, email address, then what they want ongoing help with. Do not ask for information already known. Do not redirect when the user supplied useful onboarding information, when resolving a contradiction, or after onboarding is complete. Return an empty onboardingFollowUp when no redirect is needed.
 
 When the user says something that conflicts with a durable fact already in memory or a clear earlier statement, do not silently overwrite it. Point out the specific mismatch in a natural, non-accusatory way, then ask which version is current. For example: "Wait, earlier you said X, but now I'm hearing Y. Do you want X or Y?" Only update memory after the user clarifies. Do not flag harmless elaborations, changes of preference, or facts that can both be true.
 

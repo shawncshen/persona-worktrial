@@ -14,6 +14,7 @@ export type OnboardingState = {
 
 export type AgentTurn = {
   reply: string;
+  onboardingFollowUp?: string;
   acknowledgedTask: boolean;
   reaction?: string;
   memory: {

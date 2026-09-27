@@ -38,6 +38,7 @@ Users may move into the main experience early when they already have a clear tas
 - After naming, let the agent introduce itself and offer text or voice naturally.
 - Learn the user's name, email address, and primary need conversationally. Ask for the email naturally and never invent or infer it.
 - If a user supplies several required details in one message, recognize all of them and skip redundant questions.
+- If the user goes off-topic while onboarding is incomplete, answer their question or request first, then send a second, separate agent message that gently returns to onboarding and asks for exactly one missing detail. Never combine the answer and redirect in one bubble, never ask for a known detail, and do not redirect after onboarding is complete.
 - If a voice call ends unexpectedly, save all captured information and continue in text without asking the user to repeat it.
 - The agent may gently steer the user, but must not sound like a form, checklist, or scripted support bot.
 - Once named, the agent must speak from its own first-person perspective using `I` and `me`, never refer to itself by name in third person.
