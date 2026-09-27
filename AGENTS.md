@@ -141,3 +141,5 @@ Opening a voice call is an outgoing call from the user to the agent, never an in
 Chat messages must render bullet content as semantic lists. Each bullet appears on its own line with clear indentation and vertical spacing, including when model output supplies inline bullet separators.
 
 The evaluator memory page is titled “What the agent learned from onboarding.” Present learned onboarding fields in one clean table-style chart rather than separate cards. Do not show the Conversation statistics card or the approval/reset footnote.
+
+Use the official Persona loop mark from the public Persona Band favicon as the website favicon instead of the earlier letter “P” icon.
