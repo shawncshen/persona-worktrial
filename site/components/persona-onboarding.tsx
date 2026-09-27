@@ -19,7 +19,7 @@ const STORAGE_KEY = "persona-onboarding-v1";
 const initialMessages: Message[] = [{
   id: "welcome",
   role: "agent",
-  text: "Hi. I’m here to make life a little lighter.\n\nBefore we get started, what should I go by?",
+  text: "welcome to persona :)\n\nI'm your personal agent, what do you want to name me?",
 }];
 const initialState: OnboardingState = {
   agentName: "", userName: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked",

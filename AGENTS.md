@@ -37,6 +37,7 @@ Users may move into the main experience early when they already have a clear tas
 
 ## Conversation Design
 
+- Open with exactly: `welcome to persona :)` followed by `I'm your personal agent, what do you want to name me?` on a new paragraph.
 - Start in text and invite the user to name the agent.
 - After naming, let the agent introduce itself and offer text or voice naturally.
 - Learn the user's name and primary need conversationally.
