@@ -2,7 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp, CalendarDays, Check, Mail, Mic, Phone, PhoneOff, Plus, ShieldCheck } from "lucide-react";
-import { mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Message, type OnboardingState } from "@/lib/onboarding";
+import { isOnboardingReady, mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Message, type OnboardingState } from "@/lib/onboarding";
 import { parseRealtimeVoiceEvent } from "@/lib/voice";
 
 type ModelContext = {
@@ -22,7 +22,7 @@ const initialMessages: Message[] = [{
   text: "welcome to persona :)\n\nI'm your personal agent, what do you want to name me?",
 }];
 const initialState: OnboardingState = {
-  agentName: "", userName: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked",
+  agentName: "", userName: "", primaryNeed: "", callStatus: "not_offered", googleStatus: "not_asked", onboardingComplete: false,
 };
 const DEVICE_STORAGE_KEY = "persona-device-id";
 
@@ -418,7 +418,7 @@ export function PersonaOnboarding() {
           <span className="wordmark-sheen" aria-hidden="true">persona</span>
         </button>
         <div className="header-actions">
-          <a className="memory-link" href="/memory">What I know</a>
+          <button type="button" className="memory-link" onClick={() => window.location.assign("/memory")}>What I know</button>
         </div>
       </header>
 

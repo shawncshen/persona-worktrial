@@ -141,7 +141,7 @@ input:focus-visible {
 
 .header-actions { justify-self: end; display: flex; align-items: center; gap: 10px; }
 .memory-link, .back-link { color: var(--muted); font-size: .78rem; text-decoration: none; }
-.memory-link { border-radius: 999px; padding: 10px 12px; }
+.memory-link { border: 0; border-radius: 999px; background: transparent; padding: 10px 12px; cursor: pointer; }
 .memory-link:hover, .back-link:hover { color: var(--ink); }
 
 .memory-page { min-height: 100svh; padding: 24px clamp(20px, 6vw, 92px) 56px; }
