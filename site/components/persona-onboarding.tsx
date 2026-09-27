@@ -233,7 +233,10 @@ export function PersonaOnboarding() {
   return (
     <main className="persona-page">
       <header className="site-header">
-        <button type="button" className="wordmark" onClick={resetDemo} aria-label="Restart Persona onboarding">persona</button>
+        <button type="button" className="wordmark" onClick={resetDemo} aria-label="Restart Persona onboarding">
+          <span className="wordmark-base">persona</span>
+          <span className="wordmark-sheen" aria-hidden="true">persona</span>
+        </button>
         <p>Your personal intelligence</p>
         <button type="button" className="quiet-button" onClick={resetDemo}>Start over</button>
       </header>

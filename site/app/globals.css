@@ -59,7 +59,11 @@ input:focus-visible {
 }
 
 .wordmark {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
   border: 0;
+  padding: 0;
   background: transparent;
   cursor: pointer;
   width: max-content;
@@ -68,6 +72,51 @@ input:focus-visible {
   font-weight: 600;
   letter-spacing: -0.055em;
   text-decoration: none;
+  animation: wordmark-drop 600ms cubic-bezier(.22, .9, .28, 1) 100ms both;
+}
+
+.wordmark-base,
+.wordmark-sheen {
+  grid-area: 1 / 1;
+}
+
+.wordmark-sheen {
+  color: transparent;
+  background: linear-gradient(
+    110deg,
+    transparent 34%,
+    #8e949a 43%,
+    #e3e7eb 50%,
+    #8e949a 57%,
+    transparent 66%
+  );
+  background-size: 230% 100%;
+  background-position: 160% 0;
+  background-clip: text;
+  -webkit-background-clip: text;
+  pointer-events: none;
+  animation: wordmark-sheen 2.4s linear infinite;
+}
+
+@keyframes wordmark-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wordmark-sheen {
+  from { background-position: 160% 0; }
+  to { background-position: -60% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark { animation: none; }
+  .wordmark-sheen { display: none; }
 }
 
 .site-header p {

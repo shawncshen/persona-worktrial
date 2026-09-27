@@ -55,6 +55,7 @@ Users may move into the main experience early when they already have a clear tas
 - Use familiar iMessage conventions such as gray incoming bubbles, blue outgoing bubbles, a rounded composer, a typing indicator, and subtle timestamps. Meta Muse may be used as an interaction and layout reference.
 - Include distinct microphone and call controls. The microphone may dictate a message; the call control begins a full Realtime conversation.
 - Connector approvals should appear contextually inside the conversation rather than as detached onboarding forms or a required connector-selection page.
+- The top-left Persona wordmark uses a restrained brand animation inspired by the reference site: a short drop-in on load and a subtle silver sheen sweeping through the letters every 2.4 seconds, with motion disabled when the user prefers reduced motion.
 
 ## Technical Direction
 
