@@ -13,6 +13,7 @@ const emptyProfile: OnboardingState = {
   primaryNeed: "",
   callStatus: "not_offered",
   googleStatus: "not_asked",
+  onboardingComplete: false,
 };
 
 export default function MemoryPage() {

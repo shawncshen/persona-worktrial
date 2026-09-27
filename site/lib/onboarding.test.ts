@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mergeAgentTurn, normalizeMemory, type AgentTurn, type OnboardingState } from "./onboarding.ts";
+import { isOnboardingReady, mergeAgentTurn, normalizeMemory, type AgentTurn, type OnboardingState } from "./onboarding.ts";
 
 const current: OnboardingState = {
   agentName: "Nova",
@@ -8,6 +8,7 @@ const current: OnboardingState = {
   primaryNeed: "",
   callStatus: "not_offered",
   googleStatus: "not_asked",
+  onboardingComplete: false,
 };
 
 test("merges model-extracted memory without losing known facts", () => {
@@ -42,4 +43,16 @@ test("keeps primary need compact and single-line", () => {
   assert.equal(memory.userName, "Shawn");
   assert.ok(memory.primaryNeed.length <= 160);
   assert.equal(memory.primaryNeed.includes("\n"), false);
+});
+
+test("finishes only after details, a call attempt, and a Google decision", () => {
+  assert.equal(isOnboardingReady(current), false);
+  assert.equal(isOnboardingReady({
+    ...current,
+    agentName: "Nova",
+    userName: "Shawn",
+    primaryNeed: "recruiting follow-ups",
+    callStatus: "ended",
+    googleStatus: "connected",
+  }), true);
 });

@@ -8,6 +8,7 @@ export type OnboardingState = {
   primaryNeed: string;
   callStatus: "not_offered" | "offered" | "declined" | "ended";
   googleStatus: "not_asked" | "offered" | "connected" | "declined";
+  onboardingComplete: boolean;
 };
 
 export type AgentTurn = {
@@ -30,6 +31,13 @@ export function normalizeMemory(memory: AgentTurn["memory"]): AgentTurn["memory"
     userName: memory.userName.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.userName),
     primaryNeed: memory.primaryNeed.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.primaryNeed),
   };
+}
+
+export function isOnboardingReady(profile: OnboardingState): boolean {
+  const hasRequiredDetails = Boolean(profile.agentName.trim() && profile.userName.trim() && profile.primaryNeed.trim());
+  const callWasAttempted = profile.callStatus !== "not_offered";
+  const googleWasResolved = profile.googleStatus === "connected" || profile.googleStatus === "declined";
+  return hasRequiredDetails && callWasAttempted && googleWasResolved;
 }
 
 export function mergeAgentTurn(current: OnboardingState, turn: AgentTurn): OnboardingState {

@@ -50,6 +50,7 @@ Users may move into the main experience early when they already have a clear tas
 - When resuming a voice conversation with known names, say `Hey [user], it’s [agent]. Let’s continue where we left off.`
 - If a new statement conflicts with durable memory or a clear earlier statement, identify the mismatch conversationally and ask which version is current before changing memory. Do not treat harmless elaborations or compatible facts as contradictions.
 - When a user explicitly asks the agent to do something, add a thumbs-up reaction to that user message only when the model's reply acknowledges or accepts the task. Do not react to ordinary answers or unaccepted requests.
+- Announce `You're done with onboarding. Let me know if you need anything from me!` exactly once after the agent has a name, knows the user's name and primary need, has attempted to offer or complete a voice call, and Google has been either connected or explicitly declined.
 - User-facing chat copy must never use an em dash. This is a strict project rule.
 - The text composer supports both Enter and Command+Enter to send a message.
 

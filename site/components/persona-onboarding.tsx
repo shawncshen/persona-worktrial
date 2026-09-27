@@ -99,7 +99,7 @@ export function PersonaOnboarding() {
         const parsed = JSON.parse(saved) as { profile: OnboardingState; messages: Message[] };
         // Hydrate the durable demo state after the client mounts.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setProfile(parsed.profile);
+        setProfile({ ...parsed.profile, onboardingComplete: Boolean(parsed.profile.onboardingComplete) });
         setMessages(parsed.messages);
       } catch { window.localStorage.removeItem(ONBOARDING_STORAGE_KEY); }
     }
@@ -130,6 +130,14 @@ export function PersonaOnboarding() {
       setTyping(false);
     }, delay);
   };
+
+  useEffect(() => {
+    if (!ready || typing || profile.onboardingComplete || !isOnboardingReady(profile)) return;
+    setProfile((current) => ({ ...current, onboardingComplete: true }));
+    addAgentMessage("You're done with onboarding. Let me know if you need anything from me!", 280);
+  // Completion is derived from the persisted onboarding fields and must fire only once.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile, ready, typing]);
 
   const requestAgentTurn = async (nextMessages: Message[], currentProfile: OnboardingState, channel: "text" | "voice") => {
     const response = await fetch("/api/onboarding", {
