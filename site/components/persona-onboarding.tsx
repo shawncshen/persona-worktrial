@@ -244,7 +244,6 @@ export function PersonaOnboarding() {
           <span className="wordmark-base">persona</span>
           <span className="wordmark-sheen" aria-hidden="true">persona</span>
         </button>
-        <p>Your personal intelligence</p>
         <div className="header-actions">
           <Link className="memory-link" href="/memory">What I know</Link>
           <button type="button" className="quiet-button" onClick={resetDemo}>Start over</button>
@@ -252,7 +251,6 @@ export function PersonaOnboarding() {
       </header>
 
       <section className="intro-copy" aria-labelledby="page-title">
-        <p className="eyebrow">Meet your Persona</p>
         <h1 id="page-title">Let&apos;s make this personal.</h1>
       </section>
 

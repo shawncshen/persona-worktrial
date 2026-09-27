@@ -113,3 +113,5 @@ Whenever product, UX, architecture, scope, copy, or implementation decisions cha
 The page-level privacy note beneath the conversation panel has been removed from the current prototype.
 
 The page canvas uses a uniform bright white background. Keep the chat panel, message bubbles, controls, and their existing colors and shadows unchanged.
+
+The header tagline “Your personal intelligence” and the intro eyebrow “Meet your Persona” have been removed to keep the first viewport more minimal.
