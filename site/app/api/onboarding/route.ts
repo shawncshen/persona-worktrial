@@ -75,6 +75,7 @@ export async function POST(request: Request) {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || "gpt-6-astra",
+      service_tier: "fast",
       store: false,
       instructions,
       input: [

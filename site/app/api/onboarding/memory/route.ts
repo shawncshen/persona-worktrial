@@ -39,6 +39,7 @@ export async function POST(request: Request) {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || "gpt-6-astra",
+      service_tier: "fast",
       store: false,
       instructions: `Extract durable onboarding memory from this voice conversation, including the user's explicitly stated email address. Never invent or infer an email. Preserve known values unless the user clearly resolves a correction. If the latest user statement conflicts with memory and the assistant asks for clarification, keep the old value until the user clarifies. Set acknowledgedTask true only when the latest user message explicitly requests an action and the latest assistant reply accepts it.
 
