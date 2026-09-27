@@ -45,6 +45,7 @@ Users may move into the main experience early when they already have a clear tas
 - If a voice call ends unexpectedly, save all captured information and continue in text without asking the user to repeat it.
 - The agent may gently steer the user, but must not sound like a form, checklist, or scripted support bot.
 - User-facing chat copy must never use an em dash. This is a strict project rule.
+- The text composer supports both Enter and Command+Enter to send a message.
 
 ## Visual Direction
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp, CalendarDays, Check, Mail, Mic, MicOff, Phone, PhoneOff, Plus, ShieldCheck, Volume2 } from "lucide-react";
 import { extractFacts, nextReply, type Message, type OnboardingState } from "@/lib/onboarding";
 
@@ -95,6 +95,13 @@ export function PersonaOnboarding() {
   const submitText = (event: FormEvent) => {
     event.preventDefault();
     sendText(input);
+  };
+
+  const handleComposerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && event.metaKey) {
+      event.preventDefault();
+      event.currentTarget.form?.requestSubmit();
+    }
   };
 
   const keepTexting = () => {
@@ -284,7 +291,7 @@ export function PersonaOnboarding() {
           <button type="button" className="composer-icon" aria-label="More options"><Plus size={21} strokeWidth={1.9} /></button>
           <label className="message-input-wrap">
             <span className="sr-only">Message {agentLabel}</span>
-            <input value={input} onChange={(event) => setInput(event.target.value)} type="text" placeholder="Message" aria-label={`Message ${agentLabel}`} autoComplete="off" />
+            <input value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleComposerKeyDown} type="text" placeholder="Message" aria-label={`Message ${agentLabel}`} autoComplete="off" />
             {input.trim() ? <button type="submit" className="send-button" aria-label="Send message"><ArrowUp size={18} strokeWidth={2.4} /></button> : <button type="button" className="mic-button" aria-label="Dictate a message"><Mic size={19} strokeWidth={1.9} /></button>}
           </label>
         </form>
