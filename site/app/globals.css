@@ -19,7 +19,7 @@ html { background: var(--page); }
 body {
   min-height: 100vh;
   margin: 0;
-  background: linear-gradient(180deg, #fff 0%, #fff 58%, #f5f5f7 100%);
+  background: var(--page);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", Inter, "Helvetica Neue", Arial, sans-serif;
 }
