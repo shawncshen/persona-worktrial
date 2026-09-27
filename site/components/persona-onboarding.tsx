@@ -500,7 +500,7 @@ export function PersonaOnboarding() {
         <header className="message-header">
           <button type="button" className="chat-reset-button" onClick={resetDemo}>Restart session</button>
           <div className="contact-identity">
-            <div className="contact-avatar" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
+            <div className="contact-avatar" aria-hidden="true"><img src="/agent-avatar-v2.png" alt="" /></div>
             <strong>{agentLabel}</strong>
           </div>
           <button type="button" className="icon-button" aria-label={`Call ${agentLabel}`} onClick={startCall}><Phone size={19} strokeWidth={1.9} /></button>
@@ -556,7 +556,7 @@ export function PersonaOnboarding() {
       {callOpen && (
         <div className="call-backdrop" role="dialog" aria-modal="true" aria-label={`Voice call with ${agentLabel}`}>
           <div className="call-panel">
-            <div className="call-aura" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
+            <div className="call-aura" aria-hidden="true"><img src="/agent-avatar-v2.png" alt="" /></div>
             <h2>{agentLabel}</h2>
             <p className="call-status">{callActive
               ? `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`

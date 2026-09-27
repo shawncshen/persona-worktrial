@@ -136,7 +136,7 @@ Keep the header actions aligned to the far-right edge, opposite the Persona word
 
 Keep the hero headline and supporting copy slightly smaller than the Persona Band reference so the conversation panel begins higher in the viewport. Desktop headline sizing should top out around 68px, with tighter vertical margins and a 16px supporting line.
 
-The conversation header centers the agent identity in an iMessage-style stack: an original cute robot avatar with the chosen agent name directly underneath. Do not show the “Here when you need it” subtitle. Keep the call control aligned on the right.
+The conversation header centers the agent identity in an iMessage-style stack: an original friendly human-like 3D assistant portrait with warm ivory styling and a restrained amber accent, with the chosen agent name directly underneath. The person must remain visually distinct from Meta Muse and other existing mascots. Do not show the “Here when you need it” subtitle. Keep the call control aligned on the right.
 
 Style the inline “Call” and “Keep texting” choices like native iMessage actions. Use Apple blue with white text for the primary call action and soft iMessage gray with dark text for the secondary action. Avoid black-and-white button treatments.
 
