@@ -2,7 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowUp, CalendarDays, Check, Mail, Mic, MicOff, Phone, PhoneOff, Plus, ShieldCheck, Volume2 } from "lucide-react";
+import { ArrowUp, CalendarDays, Check, Mail, Mic, Phone, PhoneOff, Plus, ShieldCheck } from "lucide-react";
 import { mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Message, type OnboardingState } from "@/lib/onboarding";
 
 type ModelContext = {
@@ -34,10 +34,10 @@ export function PersonaOnboarding() {
   const [ready, setReady] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [callActive, setCallActive] = useState(false);
-  const [callListening, setCallListening] = useState(false);
+  const [, setCallListening] = useState(false);
   const [callError, setCallError] = useState("");
   const [callSeconds, setCallSeconds] = useState(0);
-  const [callCaption, setCallCaption] = useState("");
+  const [, setCallCaption] = useState("");
   const [connectorOpen, setConnectorOpen] = useState(false);
   const [connectorBusy, setConnectorBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -253,11 +253,10 @@ export function PersonaOnboarding() {
     }
   };
 
-  const toggleMicrophone = () => {
-    const enabled = !callListening;
-    microphoneRef.current?.getAudioTracks().forEach((track) => { track.enabled = enabled; });
-    setCallListening(enabled);
-  };
+  useEffect(() => {
+    if (!callOpen || callActive || peerRef.current) return;
+    void answerCall();
+  }, [callActive, callOpen]);
 
   const endCall = () => {
     dataChannelRef.current?.close();
@@ -337,7 +336,6 @@ export function PersonaOnboarding() {
         </button>
         <div className="header-actions">
           <Link className="memory-link" href="/memory">What I know</Link>
-          <button type="button" className="quiet-button" onClick={resetDemo}>Start over</button>
         </div>
       </header>
 
@@ -351,7 +349,7 @@ export function PersonaOnboarding() {
 
       <section id="conversation" className="message-shell" aria-label="Persona onboarding conversation" ref={shellRef}>
         <header className="message-header">
-          <span className="message-header-spacer" aria-hidden="true" />
+          <button type="button" className="chat-reset-button" onClick={resetDemo}>Start over</button>
           <div className="contact-identity">
             <div className="contact-avatar" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
             <strong>{agentLabel}</strong>
@@ -402,27 +400,13 @@ export function PersonaOnboarding() {
       {callOpen && (
         <div className="call-backdrop" role="dialog" aria-modal="true" aria-label={`Voice call with ${agentLabel}`}>
           <div className="call-panel">
-            <div className="call-aura" aria-hidden="true"><span>{profile.agentName ? profile.agentName[0].toUpperCase() : "P"}</span></div>
-            <p className="call-kicker">{callActive ? "Persona voice" : "Incoming call"}</p>
+            <div className="call-aura" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
             <h2>{agentLabel}</h2>
-            <p className="call-status">{callActive ? `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}` : "Wants to get to know you"}</p>
-            {callActive && callCaption && <div className="live-caption"><Volume2 size={16} /><p>{callCaption}</p></div>}
+            <p className="call-status">{callActive ? `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}` : "calling…"}</p>
             {callError && <p className="call-error" role="alert">{callError}</p>}
-            {!callActive ? (
-              <div className="incoming-actions">
-                <button type="button" className="decline-call" onClick={endCall}><PhoneOff size={21} /><span>Decline</span></button>
-                <button type="button" className="answer-call" onClick={answerCall}><Phone size={22} /><span>Answer</span></button>
-              </div>
-            ) : (
-              <div className="active-call-actions">
-                <button type="button" className={callListening ? "voice-control listening" : "voice-control"} onClick={toggleMicrophone}>
-                  {callListening ? <Mic size={22} /> : <MicOff size={22} />}
-                  <span>{callListening ? "Mute" : "Unmute"}</span>
-                </button>
-                <button type="button" className="hangup-control" onClick={endCall}><PhoneOff size={22} /><span>End</span></button>
-              </div>
-            )}
-            <button type="button" className="continue-text" onClick={endCall}>Continue by text</button>
+            <div className="active-call-actions">
+              <button type="button" className="hangup-control" aria-label="Hang up" onClick={endCall}><PhoneOff size={25} /></button>
+            </div>
           </div>
         </div>
       )}

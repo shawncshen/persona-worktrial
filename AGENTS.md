@@ -121,6 +121,8 @@ Voice calls and text chat are separate presentation channels. Realtime voice tra
 
 Message reactions are reserved for accepted actions. Refusals, inability statements, hypotheticals, ordinary conversation, and unperformed workarounds receive no reaction. Accepted actions use 👍 by default, with one more contextually obvious emoji allowed when it clearly fits the task, such as 🎂 for an accepted birthday request.
 
+The Start over control lives in the top-left of the conversation header, opposite the call control, while the agent identity remains centered. It is no longer shown in the page-level header.
+
 The page canvas uses a uniform bright white background. Keep the chat panel, message bubbles, controls, and their existing colors and shadows unchanged.
 
 The header tagline “Your personal intelligence” and the intro eyebrow “Meet your Persona” have been removed to keep the first viewport more minimal.
@@ -134,3 +136,5 @@ Keep the hero headline and supporting copy slightly smaller than the Persona Ban
 The conversation header centers the agent identity in an iMessage-style stack: an original cute robot avatar with the chosen agent name directly underneath. Do not show the “Here when you need it” subtitle. Keep the call control aligned on the right.
 
 Style the inline “Call” and “Keep texting” choices like native iMessage actions. Use Apple blue with white text for the primary call action and soft iMessage gray with dark text for the secondary action. Avoid black-and-white button treatments.
+
+Opening a voice call is an outgoing call from the user to the agent, never an incoming call. Show an iPhone-style active call stage with the agent avatar, chosen name, connection state or elapsed call timer, and only one centered red hang-up button at the bottom. Do not show answer, decline, mute, “wants to get to know you,” continue-by-text, or visible transcript copy in the call stage.
