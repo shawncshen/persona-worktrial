@@ -40,6 +40,7 @@ export function PersonaOnboarding() {
   const [connectorOpen, setConnectorOpen] = useState(false);
   const [connectorBusy, setConnectorBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const saved = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
@@ -95,6 +96,9 @@ export function PersonaOnboarding() {
     setInput("");
     setMessages(nextMessages);
     setTyping(true);
+    window.requestAnimationFrame(() => {
+      shellRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
     try {
       const turn = await requestAgentTurn(nextMessages, profile, "text");
       setProfile((current) => mergeAgentTurn(current, turn));
@@ -278,7 +282,7 @@ export function PersonaOnboarding() {
         <p>Your Persona remembers what matters and does<br className="desktop-break" /> what you need before you know you need it.</p>
       </section>
 
-      <section id="conversation" className="message-shell" aria-label="Persona onboarding conversation">
+      <section id="conversation" className="message-shell" aria-label="Persona onboarding conversation" ref={shellRef}>
         <header className="message-header">
           <div className="contact-avatar" aria-hidden="true"><span>{profile.agentName ? profile.agentName[0].toUpperCase() : "P"}</span></div>
           <div className="contact-details"><strong>{agentLabel}</strong><span>{typing ? "Typing…" : "Here when you need it"}</span></div>
