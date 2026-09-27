@@ -106,3 +106,5 @@ Track structured onboarding state separately from free-form conversation, includ
 ## Working Agreement
 
 Whenever product, UX, architecture, scope, copy, or implementation decisions change, update this root `AGENTS.md` in the same change so future Codex agents receive current project context at startup.
+
+The page-level privacy note beneath the conversation panel has been removed from the current prototype.

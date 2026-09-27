@@ -297,8 +297,6 @@ export function PersonaOnboarding() {
         </form>
       </section>
 
-      <p className="privacy-note">Private by design. Yours to control.</p>
-
       {callOpen && (
         <div className="call-backdrop" role="dialog" aria-modal="true" aria-label={`Voice call with ${agentLabel}`}>
           <div className="call-panel">
