@@ -126,3 +126,5 @@ The onboarding hero now mirrors the Persona Band reference typography and copy: 
 Keep the header actions aligned to the far-right edge, opposite the Persona wordmark. Keep the hero compact near the top of the page. Whenever a user sends a text message, smoothly center the complete conversation panel in the viewport so the chat becomes the visual focus.
 
 Keep the hero headline and supporting copy slightly smaller than the Persona Band reference so the conversation panel begins higher in the viewport. Desktop headline sizing should top out around 68px, with tighter vertical margins and a 16px supporting line.
+
+The conversation header centers the agent identity in an iMessage-style stack: an original cute robot avatar with the chosen agent name directly underneath. Do not show the “Here when you need it” subtitle. Keep the call control aligned on the right.

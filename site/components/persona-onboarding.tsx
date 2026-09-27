@@ -338,8 +338,11 @@ export function PersonaOnboarding() {
 
       <section id="conversation" className="message-shell" aria-label="Persona onboarding conversation" ref={shellRef}>
         <header className="message-header">
-          <div className="contact-avatar" aria-hidden="true"><span>{profile.agentName ? profile.agentName[0].toUpperCase() : "P"}</span></div>
-          <div className="contact-details"><strong>{agentLabel}</strong><span>{typing ? "Typing…" : "Here when you need it"}</span></div>
+          <span className="message-header-spacer" aria-hidden="true" />
+          <div className="contact-identity">
+            <div className="contact-avatar" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
+            <strong>{agentLabel}</strong>
+          </div>
           <button type="button" className="icon-button" aria-label={`Call ${agentLabel}`} disabled={!profile.agentName} onClick={startCall}><Phone size={19} strokeWidth={1.9} /></button>
         </header>
 
