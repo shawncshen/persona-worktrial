@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, Mic, Phone, Plus } from "lucide-react";
+import { ArrowUp, Mic, MicOff, Phone, PhoneOff, Plus, Volume2 } from "lucide-react";
 
 type Message = { id: string; role: "agent" | "user"; text: string };
 type OnboardingState = {
@@ -60,6 +60,12 @@ export function PersonaOnboarding() {
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [ready, setReady] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
+  const [callActive, setCallActive] = useState(false);
+  const [callListening, setCallListening] = useState(false);
+  const [callError, setCallError] = useState("");
+  const [callSeconds, setCallSeconds] = useState(0);
+  const [callCaption, setCallCaption] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -81,6 +87,12 @@ export function PersonaOnboarding() {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, typing]);
+
+  useEffect(() => {
+    if (!callActive) return;
+    const timer = window.setInterval(() => setCallSeconds((seconds) => seconds + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [callActive]);
 
   const addAgentMessage = (text: string, delay = 620) => {
     setTyping(true);
@@ -111,6 +123,80 @@ export function PersonaOnboarding() {
     addAgentMessage("Totally fine. We can do everything here. What should I call you?", 300);
   };
 
+  const speak = (text: string) => {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.02;
+    utterance.pitch = 1.03;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startCall = () => {
+    setCallOpen(true);
+    setCallActive(false);
+    setCallSeconds(0);
+    setCallError("");
+    setCallCaption("");
+  };
+
+  const answerCall = () => {
+    setCallActive(true);
+    const greeting = profile.userName
+      ? `Hey ${profile.userName}, it’s ${profile.agentName}. I remember where we left off. What would you like to focus on?`
+      : `Hey, it’s ${profile.agentName}. What should I call you, and what could you use a hand with?`;
+    setCallCaption(greeting);
+    speak(greeting);
+  };
+
+  const captureVoice = () => {
+    type SpeechResult = { 0: { transcript: string } };
+    type Recognition = {
+      continuous: boolean;
+      interimResults: boolean;
+      lang: string;
+      start: () => void;
+      onresult: ((event: { results: ArrayLike<SpeechResult> }) => void) | null;
+      onerror: (() => void) | null;
+      onend: (() => void) | null;
+    };
+    const voiceWindow = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
+    const VoiceRecognition = voiceWindow.SpeechRecognition || voiceWindow.webkitSpeechRecognition;
+    if (!VoiceRecognition) {
+      setCallError("Voice input is not available in this browser. You can keep going by text.");
+      return;
+    }
+    const recognition = new VoiceRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    setCallListening(true);
+    setCallError("");
+    recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript?.trim();
+      if (!transcript) return;
+      const next = extractFacts(transcript, profile);
+      setProfile({ ...next, callStatus: "ended", googleStatus: next.userName && next.primaryNeed ? "offered" : next.googleStatus });
+      setMessages((items) => [...items, { id: crypto.randomUUID(), role: "user", text: transcript }]);
+      const reply = nextReply(profile, next);
+      setCallCaption(reply);
+      speak(reply);
+    };
+    recognition.onerror = () => setCallError("I couldn’t hear that clearly. Try again, or keep going by text.");
+    recognition.onend = () => setCallListening(false);
+    recognition.start();
+  };
+
+  const endCall = () => {
+    window.speechSynthesis?.cancel();
+    const learned = [profile.userName && `your name is ${profile.userName}`, profile.primaryNeed && `you want help with ${profile.primaryNeed}`].filter(Boolean).join(" and ");
+    setCallOpen(false);
+    setCallActive(false);
+    setCallListening(false);
+    setProfile((state) => ({ ...state, callStatus: "ended" }));
+    addAgentMessage(learned ? `Good talking with you. I saved that ${learned}. We can keep going here.` : "Looks like we got cut off. No worries. We can keep going here, or call again anytime.", 250);
+  };
+
   const resetDemo = () => {
     window.localStorage.removeItem(STORAGE_KEY);
     setProfile(initialState);
@@ -139,7 +225,7 @@ export function PersonaOnboarding() {
         <header className="message-header">
           <div className="contact-avatar" aria-hidden="true"><span>{profile.agentName ? profile.agentName[0].toUpperCase() : "P"}</span></div>
           <div className="contact-details"><strong>{agentLabel}</strong><span>{typing ? "Typing…" : "Here when you need it"}</span></div>
-          <button type="button" className="icon-button" aria-label={`Call ${agentLabel}`} disabled={!profile.agentName}><Phone size={19} strokeWidth={1.9} /></button>
+          <button type="button" className="icon-button" aria-label={`Call ${agentLabel}`} disabled={!profile.agentName} onClick={startCall}><Phone size={19} strokeWidth={1.9} /></button>
         </header>
 
         <div className="message-body" role="log" aria-live="polite" ref={scrollRef}>
@@ -152,7 +238,7 @@ export function PersonaOnboarding() {
           {typing && <div className="bubble-row incoming" aria-label={`${agentLabel} is typing`}><div className="typing-bubble"><span /><span /><span /></div></div>}
           {showCallChoices && !typing && (
             <div className="choice-row" aria-label="Choose how to continue">
-              <button type="button" className="primary-choice"><Phone size={16} />Call {profile.agentName}</button>
+              <button type="button" className="primary-choice" onClick={startCall}><Phone size={16} />Call {profile.agentName}</button>
               <button type="button" className="secondary-choice" onClick={keepTexting}>Keep texting</button>
             </div>
           )}
@@ -177,6 +263,34 @@ export function PersonaOnboarding() {
       </section>
 
       <p className="privacy-note">Private by design. Yours to control.</p>
+
+      {callOpen && (
+        <div className="call-backdrop" role="dialog" aria-modal="true" aria-label={`Voice call with ${agentLabel}`}>
+          <div className="call-panel">
+            <div className="call-aura" aria-hidden="true"><span>{profile.agentName ? profile.agentName[0].toUpperCase() : "P"}</span></div>
+            <p className="call-kicker">{callActive ? "Persona voice" : "Incoming call"}</p>
+            <h2>{agentLabel}</h2>
+            <p className="call-status">{callActive ? `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}` : "Wants to get to know you"}</p>
+            {callActive && callCaption && <div className="live-caption"><Volume2 size={16} /><p>{callCaption}</p></div>}
+            {callError && <p className="call-error" role="alert">{callError}</p>}
+            {!callActive ? (
+              <div className="incoming-actions">
+                <button type="button" className="decline-call" onClick={endCall}><PhoneOff size={21} /><span>Decline</span></button>
+                <button type="button" className="answer-call" onClick={answerCall}><Phone size={22} /><span>Answer</span></button>
+              </div>
+            ) : (
+              <div className="active-call-actions">
+                <button type="button" className={callListening ? "voice-control listening" : "voice-control"} onClick={captureVoice} disabled={callListening}>
+                  {callListening ? <MicOff size={22} /> : <Mic size={22} />}
+                  <span>{callListening ? "Listening" : "Speak"}</span>
+                </button>
+                <button type="button" className="hangup-control" onClick={endCall}><PhoneOff size={22} /><span>End</span></button>
+              </div>
+            )}
+            <button type="button" className="continue-text" onClick={endCall}>Continue by text</button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
