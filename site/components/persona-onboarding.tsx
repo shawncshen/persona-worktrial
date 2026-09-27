@@ -341,9 +341,11 @@ export function PersonaOnboarding() {
             content: [{ type: message.role === "agent" ? "output_text" : "input_text", text: message.text }],
           },
         })));
-        const greeting = profileRef.current.userName
-          ? `Say exactly: "Hey ${profileRef.current.userName}, it’s ${profileRef.current.agentName}. Let’s continue where we left off."`
-          : `Say exactly: "Hey, it’s ${profileRef.current.agentName}. What should I call you, and what could you use a hand with?"`;
+        const greeting = profileRef.current.agentName
+          ? profileRef.current.userName
+            ? `Say exactly: "Hey ${profileRef.current.userName}, it’s ${profileRef.current.agentName}. Let’s continue where we left off."`
+            : `Say exactly: "Hey, it’s ${profileRef.current.agentName}. What should I call you, and what could you use a hand with?"`
+          : `Say exactly: "Hey! We can start here. What should I call you, and what could you use a hand with?"`;
         channel.send(JSON.stringify({ type: "response.create", response: { instructions: greeting } }));
       });
 
@@ -470,12 +472,12 @@ export function PersonaOnboarding() {
 
       <section id="conversation" className="message-shell" aria-label="Persona onboarding conversation" ref={shellRef}>
         <header className="message-header">
-          <button type="button" className="chat-reset-button" onClick={resetDemo}>Restart Session</button>
+          <button type="button" className="chat-reset-button" onClick={resetDemo}>Restart session</button>
           <div className="contact-identity">
             <div className="contact-avatar" aria-hidden="true"><img src="/agent-avatar.png" alt="" /></div>
             <strong>{agentLabel}</strong>
           </div>
-          <button type="button" className="icon-button" aria-label={`Call ${agentLabel}`} disabled={!profile.agentName} onClick={startCall}><Phone size={19} strokeWidth={1.9} /></button>
+          <button type="button" className="icon-button" aria-label={`Call ${agentLabel}`} onClick={startCall}><Phone size={19} strokeWidth={1.9} /></button>
         </header>
 
         <div className="message-body" role="log" aria-live="polite" ref={scrollRef}>

@@ -22,6 +22,7 @@ Users may move into the main experience early when they already have a clear tas
 - Make onboarding feel like messaging a capable person in iMessage.
 - Use a wide, desktop-friendly iOS-style conversation as the primary interface.
 - Allow the user to switch freely between text and a browser-based voice call.
+- Keep the call control available from the first render, before the user names the agent. A pre-name call uses the generic `Your Persona` identity, collects the user's name, email, and need, and leaves agent naming to text.
 - Preserve context and progress across text, voice, hangups, refreshes, and resumed sessions.
 - Treat text and voice as two channels for the same logical agent identity.
 - Demonstrate a personalized first useful action as early as possible.
@@ -116,7 +117,7 @@ Durable `primary_need` memory is one compact description of the user's ongoing n
 
 Message reactions are reserved for accepted actions. Refusals, inability statements, hypotheticals, ordinary conversation, and unperformed workarounds receive no reaction. Accepted actions use 👍 by default, with one more contextually obvious emoji allowed when it clearly fits the task, such as 🎂 for an accepted birthday request.
 
-The Restart Session control lives in the top-left of the conversation header, opposite the call control, while the agent identity remains centered. It is no longer shown in the page-level header. Present it as a compact rounded button with a subtle gray outline and white fill.
+The “Restart session” control lives in the top-left of the conversation header, opposite the call control, while the agent identity remains centered. It is no longer shown in the page-level header. Present it as a compact rounded button with a subtle gray outline and white fill, constrained to the same footprint as the former “Start over” control.
 
 The page canvas uses a uniform bright white background. Keep the chat panel, message bubbles, controls, and their existing colors and shadows unchanged.
 
