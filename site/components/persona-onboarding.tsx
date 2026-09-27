@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
-import { ArrowUp, CalendarDays, Check, Mail, Mic, Phone, PhoneOff, Plus, ShieldCheck } from "lucide-react";
-import { isOnboardingReady, mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Message, type OnboardingState } from "@/lib/onboarding";
+import { ArrowUp, CalendarDays, Check, FileText, Mail, Mic, Phone, PhoneOff, Plus, ShieldCheck, X } from "lucide-react";
+import { isOnboardingReady, mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Attachment, type Message, type OnboardingState } from "@/lib/onboarding";
 import { parseRealtimeVoiceEvent } from "@/lib/voice";
 
 type ModelContext = {
@@ -61,6 +61,8 @@ export function PersonaOnboarding() {
   const [profile, setProfile] = useState<OnboardingState>(initialState);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState("");
   const [typing, setTyping] = useState(false);
   const [ready, setReady] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
@@ -74,6 +76,8 @@ export function PersonaOnboarding() {
   const [connectorBusy, setConnectorBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const shellRef = useRef<HTMLElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentUrlsRef = useRef<string[]>([]);
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const microphoneRef = useRef<MediaStream | null>(null);
@@ -107,8 +111,16 @@ export function PersonaOnboarding() {
   }, []);
 
   useEffect(() => {
-    if (ready) window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ profile, messages }));
+    if (ready) {
+      const persistedMessages = messages.map((message) => ({
+        ...message,
+        attachments: message.attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment),
+      }));
+      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ profile, messages: persistedMessages }));
+    }
   }, [messages, profile, ready]);
+
+  useEffect(() => () => attachmentUrlsRef.current.forEach((url) => URL.revokeObjectURL(url)), []);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { profileRef.current = profile; }, [profile]);
@@ -143,7 +155,14 @@ export function PersonaOnboarding() {
     const response = await fetch("/api/onboarding", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: nextMessages, profile: currentProfile, channel }),
+      body: JSON.stringify({
+        messages: nextMessages.map((message) => ({
+          ...message,
+          attachments: message.attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment),
+        })),
+        profile: currentProfile,
+        channel,
+      }),
     });
     if (!response.ok) throw new Error("Agent response failed");
     return await response.json() as AgentTurn;
@@ -151,10 +170,13 @@ export function PersonaOnboarding() {
 
   const sendText = async (rawText: string) => {
     const text = rawText.trim();
-    if (!text || typing) return;
-    const userMessage: Message = { id: crypto.randomUUID(), role: "user", text };
+    if ((!text && pendingAttachments.length === 0) || typing) return;
+    const attachments = pendingAttachments;
+    const userMessage: Message = { id: crypto.randomUUID(), role: "user", text, attachments };
     const nextMessages = [...messages, userMessage];
     setInput("");
+    setPendingAttachments([]);
+    setAttachmentError("");
     setMessages(nextMessages);
     setTyping(true);
     window.requestAnimationFrame(() => {
@@ -172,6 +194,29 @@ export function PersonaOnboarding() {
     } finally {
       setTyping(false);
     }
+  };
+
+  const chooseAttachments = (files: FileList | null) => {
+    if (!files?.length) return;
+    const availableSlots = Math.max(0, 5 - pendingAttachments.length);
+    const selected = Array.from(files).slice(0, availableSlots);
+    const tooLarge = selected.some((file) => file.size > 15 * 1024 * 1024);
+    const accepted = selected.filter((file) => file.size <= 15 * 1024 * 1024).map((file) => {
+      const previewUrl = URL.createObjectURL(file);
+      attachmentUrlsRef.current.push(previewUrl);
+      return { id: crypto.randomUUID(), name: file.name, type: file.type || "application/octet-stream", size: file.size, previewUrl };
+    });
+    setPendingAttachments((current) => [...current, ...accepted]);
+    setAttachmentError(tooLarge ? "Each attachment must be 15 MB or smaller." : files.length > availableSlots ? "You can attach up to five files at once." : "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removePendingAttachment = (id: string) => {
+    setPendingAttachments((current) => {
+      const attachment = current.find((item) => item.id === id);
+      if (attachment?.previewUrl) URL.revokeObjectURL(attachment.previewUrl);
+      return current.filter((item) => item.id !== id);
+    });
   };
 
   const submitText = (event: FormEvent) => {
@@ -412,6 +457,9 @@ export function PersonaOnboarding() {
     setProfile(initialState);
     setMessages(initialMessages);
     setInput("");
+    pendingAttachments.forEach((attachment) => attachment.previewUrl && URL.revokeObjectURL(attachment.previewUrl));
+    setPendingAttachments([]);
+    setAttachmentError("");
   };
 
   const showCallChoices = profile.callStatus === "offered" && !profile.userName;
@@ -453,7 +501,14 @@ export function PersonaOnboarding() {
           {messages.map((message) => (
             <div key={message.id} className={`bubble-row ${message.role === "user" ? "outgoing" : "incoming"}`}>
               <div className="message-bubble-wrap">
-                <div className="message-bubble"><MessageText text={message.text} /></div>
+                <div className="message-bubble">
+                  {message.attachments?.length ? <div className="message-attachments">
+                    {message.attachments.map((attachment) => attachment.type.startsWith("image/") && attachment.previewUrl
+                      ? <img key={attachment.id} src={attachment.previewUrl} alt={attachment.name} />
+                      : <div className="file-attachment" key={attachment.id}><FileText size={18} /><span>{attachment.name}</span></div>)}
+                  </div> : null}
+                  {message.text && <MessageText text={message.text} />}
+                </div>
                 {message.reaction && <span className="message-reaction" aria-label={`Agent reacted with ${message.reaction === "thumbs_up" ? "thumbs up" : message.reaction}`}>{message.reaction === "thumbs_up" ? "👍" : message.reaction}</span>}
               </div>
             </div>
@@ -479,11 +534,22 @@ export function PersonaOnboarding() {
         </div>
 
         <form className="composer" onSubmit={submitText}>
-          <button type="button" className="composer-icon" aria-label="More options"><Plus size={21} strokeWidth={1.9} /></button>
+          {pendingAttachments.length > 0 && <div className="attachment-tray" aria-label="Selected attachments">
+            {pendingAttachments.map((attachment) => <div className="pending-attachment" key={attachment.id}>
+              {attachment.type.startsWith("image/") && attachment.previewUrl
+                ? <img src={attachment.previewUrl} alt="" />
+                : <FileText size={19} />}
+              <span>{attachment.name}</span>
+              <button type="button" onClick={() => removePendingAttachment(attachment.id)} aria-label={`Remove ${attachment.name}`}><X size={14} /></button>
+            </div>)}
+          </div>}
+          {attachmentError && <p className="attachment-error" role="alert">{attachmentError}</p>}
+          <input ref={fileInputRef} className="attachment-input" type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt,.rtf,.csv,.xls,.xlsx" onChange={(event) => chooseAttachments(event.target.files)} />
+          <button type="button" className="composer-icon" aria-label="Attach photos or files" onClick={() => fileInputRef.current?.click()}><Plus size={21} strokeWidth={1.9} /></button>
           <label className="message-input-wrap">
             <span className="sr-only">Message {agentLabel}</span>
             <input value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleComposerKeyDown} type="text" placeholder="Message" aria-label={`Message ${agentLabel}`} autoComplete="off" />
-            {input.trim() ? <button type="submit" className="send-button" aria-label="Send message"><ArrowUp size={18} strokeWidth={2.4} /></button> : <button type="button" className="mic-button" aria-label="Dictate a message"><Mic size={19} strokeWidth={1.9} /></button>}
+            {input.trim() || pendingAttachments.length ? <button type="submit" className="send-button" aria-label="Send message"><ArrowUp size={18} strokeWidth={2.4} /></button> : <button type="button" className="mic-button" aria-label="Dictate a message"><Mic size={19} strokeWidth={1.9} /></button>}
           </label>
         </form>
       </section>

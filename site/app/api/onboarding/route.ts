@@ -83,7 +83,12 @@ export async function POST(request: Request) {
           role: "developer",
           content: `Current structured memory: ${JSON.stringify(profile)}\nActive channel: ${body.channel || "text"}`,
         },
-        ...messages.map((message) => ({ role: message.role === "agent" ? "assistant" : "user", content: message.text })),
+        ...messages.map((message) => {
+          const attachmentSummary = message.attachments?.length
+            ? `\n\nAttachments selected: ${message.attachments.map((attachment) => `${attachment.name} (${attachment.type})`).join(", ")}. File contents are not available to inspect in this prototype.`
+            : "";
+          return { role: message.role === "agent" ? "assistant" : "user", content: `${message.text}${attachmentSummary}` };
+        }),
       ],
       text: {
         format: {

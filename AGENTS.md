@@ -54,6 +54,7 @@ Users may move into the main experience early when they already have a clear tas
 - Announce `You're done with onboarding. Let me know if you need anything from me!` exactly once after the agent has a name, knows the user's name, email address, and primary need, has attempted to offer or complete a voice call, and Google has been either connected or explicitly declined.
 - User-facing chat copy must never use an em dash. This is a strict project rule.
 - The text composer supports both Enter and Command+Enter to send a message.
+- The composer plus button opens the native device picker for photos and common files, including on phones. Show removable previews before sending and render selected attachments in the outgoing iMessage bubble. The current prototype shares attachment names and media types with the agent, not file contents, and must not pretend it inspected the contents.
 
 ## Visual Direction
 

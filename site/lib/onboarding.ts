@@ -1,4 +1,5 @@
-export type Message = { id: string; role: "agent" | "user"; text: string; reaction?: string };
+export type Attachment = { id: string; name: string; type: string; size: number; previewUrl?: string };
+export type Message = { id: string; role: "agent" | "user"; text: string; reaction?: string; attachments?: Attachment[] };
 
 export const ONBOARDING_STORAGE_KEY = "persona-onboarding-v1";
 
