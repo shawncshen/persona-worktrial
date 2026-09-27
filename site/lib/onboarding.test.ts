@@ -18,7 +18,14 @@ test("uses a plain reply as the user name after the agent is named", () => {
   const state = { ...initial, agentName: "shawn", callStatus: "declined" as const };
   const next = extractFacts("shawn", state);
   assert.equal(next.userName, "shawn");
-  assert.match(nextReply(state, next), /What’s one thing/);
+  assert.equal(nextReply(state, next), "Good to meet you, shawn. What’s one thing you wish I could take off your plate?");
+});
+
+test("the agent speaks about itself in the first person", () => {
+  const state = { ...initial, agentName: "Jack", userName: "Shawn" };
+  const reply = nextReply(state, state);
+  assert.match(reply, /I could take off your plate/);
+  assert.doesNotMatch(reply, /Jack could/);
 });
 
 test("still extracts several details from one natural message", () => {

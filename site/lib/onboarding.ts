@@ -44,7 +44,7 @@ export function nextReply(previous: OnboardingState, next: OnboardingState) {
   if (namedNow) return `${next.agentName} it is. Want to talk for a minute, or keep texting here?`;
   if (!next.agentName) return "I’m listening. What name feels right for me?";
   if (!next.userName) return "What should I call you?";
-  if (!next.primaryNeed) return `Good to meet you, ${next.userName}. What’s one thing you wish ${next.agentName} could take off your plate?`;
+  if (!next.primaryNeed) return `Good to meet you, ${next.userName}. What’s one thing you wish I could take off your plate?`;
   if (userNow || needNow) return `Got it. I can help with ${next.primaryNeed}. Want to connect Google so I can make that useful right away?`;
   return "I’ve got you. Tell me a little more about what would make this genuinely useful.";
 }
