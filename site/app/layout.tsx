@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { PasswordGate } from "@/components/password-gate";
-import { hasPageAccess } from "@/lib/access";
 import "./globals.css";
-
-export const dynamic = "force-dynamic";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -24,15 +20,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const authorized = await hasPageAccess();
   return (
     <html lang="en">
-      <body className="antialiased">{authorized ? children : <PasswordGate />}</body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { saveVoiceMessage } from "@/db/onboarding";
-import { hasRequestAccess } from "@/lib/access";
 import type { Message } from "@/lib/onboarding";
 
 export async function POST(request: Request) {
-  if (!await hasRequestAccess(request)) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
   const body = await request.json() as { deviceId?: string; sessionId?: string; message?: Message };
   const message = body.message;
   if (!body.deviceId || !body.sessionId || !message || !["user", "agent"].includes(message.role) || !message.id || !message.text?.trim()) {

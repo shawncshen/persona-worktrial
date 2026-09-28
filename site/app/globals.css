@@ -27,44 +27,6 @@ body {
 button, input { font: inherit; }
 button { color: inherit; }
 
-.password-page {
-  min-height: 100svh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: #fff;
-}
-
-.password-card {
-  width: min(100%, 390px);
-  display: grid;
-  gap: 14px;
-  border: 1px solid var(--hairline);
-  border-radius: 30px;
-  padding: 38px;
-  background: #fff;
-  box-shadow: var(--panel-shadow);
-}
-
-.password-wordmark {
-  margin-bottom: 28px;
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -.055em;
-}
-
-.password-card h1 { margin: 0; font-size: 2rem; font-weight: 550; letter-spacing: -.04em; }
-.password-card > p { margin: -5px 0 8px; color: var(--muted); font-size: .95rem; }
-.password-card input { width: 100%; min-height: 52px; border: 1px solid #c7c7cc; border-radius: 16px; padding: 0 16px; background: #fff; font-size: 16px; }
-.password-card button { min-height: 52px; border: 0; border-radius: 16px; background: var(--ink); color: #fff; cursor: pointer; font-weight: 600; }
-.password-card button:disabled { opacity: .45; cursor: default; }
-.password-card .password-error { margin: -4px 2px 0; color: #b42318; font-size: .85rem; }
-
-@media (max-width: 520px) {
-  .password-page { align-items: center; padding: 18px; }
-  .password-card { border: 0; padding: 28px 18px; box-shadow: none; }
-}
-
 button:focus-visible,
 input:focus-visible {
   outline: 3px solid rgba(0, 122, 255, 0.28);
@@ -479,8 +441,7 @@ input:focus-visible {
 .attachment-input { display: none; }
 
 .attachment-tray,
-.attachment-error,
-.dictation-status {
+.attachment-error {
   grid-column: 1 / -1;
 }
 
@@ -544,14 +505,6 @@ input:focus-visible {
   font-size: .72rem;
 }
 
-.dictation-status {
-  margin: 0 0 0 46px;
-  color: #6e6e73;
-  font-size: .72rem;
-}
-
-.dictation-status.error { color: #b42318; }
-
 .composer-icon {
   width: 34px;
   height: 34px;
@@ -588,12 +541,6 @@ input:focus-visible {
   color: #6e6e73;
 }
 
-.mic-button.listening {
-  background: rgba(255, 59, 48, .12);
-  color: #d92d20;
-  animation: dictate-pulse 1.2s ease-in-out infinite;
-}
-
 .send-button { display: grid; width: 30px; height: 30px; place-items: center; justify-self: center; border: 0; border-radius: 50%; background: var(--ios-blue); color: white; cursor: pointer; }
 
 @keyframes bubble-in {
@@ -604,10 +551,6 @@ input:focus-visible {
 @keyframes typing {
   0%, 60%, 100% { opacity: .4; transform: translateY(0); }
   30% { opacity: 1; transform: translateY(-3px); }
-}
-
-@keyframes dictate-pulse {
-  50% { box-shadow: 0 0 0 5px rgba(255, 59, 48, .12); }
 }
 
 .privacy-note {
