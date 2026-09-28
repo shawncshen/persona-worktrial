@@ -108,11 +108,23 @@ Track structured onboarding state separately from free-form conversation, includ
 
 Whenever product, UX, architecture, scope, copy, or implementation decisions change, update this root `AGENTS.md` in the same change so future Codex agents receive current project context at startup.
 
+## Evaluation Principles
+
+- Prioritize steering. The agent should not merely respond to the user; it should actively guide them toward completing the intended task.
+- Follow through on its own suggestions. If the agent says it wants to see or do something, it must remember that commitment and follow up without requiring the user to remind it.
+- Make the next step obvious. Avoid vague responses such as “once setup’s done.” Tell the user exactly what to do next or proactively move the task forward.
+- Optimize the voice experience. The browser calling experience should feel natural, responsive, and purpose-built rather than like a basic model placed inside a calling interface.
+- Think about model efficiency. Use the model stack described in this guide and demonstrate that the experience works well without relying on an unnecessarily expensive model.
+- Reduce user effort. Minimize repetition, unnecessary clarification, and any need for the user to determine the workflow themselves.
+- Test the full flow. Evaluate whether the agent can take a user from the beginning of a task through completion, not only whether individual responses look good in isolation.
+
 The page-level privacy note beneath the conversation panel has been removed from the current prototype.
 
 Voice calls and text chat are separate presentation channels. Realtime voice transcripts must not be appended to the visible text thread or followed by a text recap. Persist the full voice transcript and the latest structured onboarding profile in server-side D1 storage; the call overlay may show only the current live caption. Text chat remains device-local for the credential-free demo.
 
 Realtime voice uses the `cedar` voice. Its speaking style is warm, relaxed, casually confident, and concise, like a capable friend in an iMessage conversation. Use contractions and everyday language, vary acknowledgements, speak at a natural pace with brief pauses, and usually answer in one or two short sentences. A small natural laugh is acceptable only when it genuinely eases the mood; never force it, overuse it, or use it around serious or sensitive content.
+
+Realtime voice usually responds in one or two short sentences and asks at most one short question before stopping. It must not volunteer examples, option lists, or extra elaboration unless the user requests them or supplies examples first, and it should not restate the user's answer without a concrete reason. Send structured onboarding state with the initial server-created Realtime session so later client events cannot replace the core tone and brevity instructions. Do not impose a hard per-response output-token cap because audio responses can be cut off mid-sentence; rely on the voice instructions for brevity.
 
 Voice startup must expose distinct microphone-permission, connecting, active, and failed states. The hang-up control remains available throughout startup. Permission and connection waits must time out with useful recovery copy, and a canceled or stale attempt must never connect later.
 
@@ -151,3 +163,13 @@ Text chat and voice-memory extraction use `gpt-6-luna` with low reasoning, Fast 
 The evaluator memory page is titled “What the agent learned from onboarding.” Present learned onboarding fields in one clean table-style chart rather than separate cards. Do not show the Conversation statistics card, the approval/reset footnote, or the explanatory sentence about working context across text and voice.
 
 Use the official Persona loop mark from the public Persona Band favicon as the website favicon instead of the earlier letter “P” icon.
+
+The composer microphone provides browser-native speech dictation where supported. Show a clear listening state with a stop control, preserve partial text if dictation fails, and give useful fallback copy when microphone access is blocked or speech recognition is unavailable.
+
+Persist the onboarding-complete state and its exact completion announcement together so a refresh cannot produce a completed profile without the required message. The evaluator memory page also exposes the agent email alias, current goal, next step, pending commitment, and awaited user input so steering and follow-through are transparent.
+
+When a text turn completes onboarding, suppress the model’s generic acknowledgement and show only the exact required completion announcement. Add a second agent bubble only when it immediately advances an accepted task or existing commitment, and make that bubble specific to the next action rather than another completion message.
+
+The memory page’s Persona wordmark and “Back to conversation” control use direct same-site document navigation rather than framework soft navigation, so returning to the conversation never stalls on a React Server Component request.
+
+The public prototype is protected by a lightweight server-verified password gate. The shared access password is `zach`; successful entry sets an HTTP-only cookie that unlocks the conversation, memory page, and supporting API routes for 30 days.

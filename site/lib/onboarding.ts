@@ -10,6 +10,10 @@ export type OnboardingState = {
   primaryNeed: string;
   callStatus: "not_offered" | "offered" | "declined" | "ended";
   onboardingComplete: boolean;
+  currentGoal: string;
+  nextStep: string;
+  pendingCommitment: string;
+  awaitingUserInput: string;
 };
 
 export type AgentTurn = {
@@ -23,22 +27,42 @@ export type AgentTurn = {
     userEmail: string;
     primaryNeed: string;
   };
+  steering: {
+    currentGoal: string;
+    nextStep: string;
+    pendingCommitment: string;
+    awaitingUserInput: string;
+  };
   nextAction: "none" | "offer_call" | "onboarding_complete";
 };
 
-const MEMORY_LIMITS = { agentName: 80, userName: 80, userEmail: 254, primaryNeed: 160 } as const;
+const MEMORY_LIMITS = {
+  agentName: 80,
+  userName: 80,
+  userEmail: 254,
+  primaryNeed: 160,
+  currentGoal: 180,
+  nextStep: 180,
+  pendingCommitment: 180,
+  awaitingUserInput: 120,
+} as const;
+
+export function isValidEmail(value: string): boolean {
+  const email = value.trim();
+  return email.length <= MEMORY_LIMITS.userEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 export function normalizeMemory(memory: AgentTurn["memory"]): AgentTurn["memory"] {
   return {
     agentName: memory.agentName.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.agentName),
     userName: memory.userName.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.userName),
-    userEmail: memory.userEmail.replace(/\s+/g, "").trim().slice(0, MEMORY_LIMITS.userEmail),
+    userEmail: isValidEmail(memory.userEmail) ? memory.userEmail.trim().slice(0, MEMORY_LIMITS.userEmail) : "",
     primaryNeed: memory.primaryNeed.replace(/\s+/g, " ").trim().slice(0, MEMORY_LIMITS.primaryNeed),
   };
 }
 
 export function isOnboardingReady(profile: OnboardingState): boolean {
-  return Boolean(profile.agentName.trim() && profile.userName.trim() && profile.userEmail.trim());
+  return Boolean(profile.agentName.trim() && profile.userName.trim() && isValidEmail(profile.userEmail));
 }
 
 export function mergeAgentTurn(current: OnboardingState, turn: AgentTurn): OnboardingState {
@@ -49,6 +73,10 @@ export function mergeAgentTurn(current: OnboardingState, turn: AgentTurn): Onboa
     userName: memory.userName || current.userName,
     userEmail: memory.userEmail || current.userEmail,
     primaryNeed: memory.primaryNeed || current.primaryNeed,
+    currentGoal: turn.steering.currentGoal || current.currentGoal,
+    nextStep: turn.steering.nextStep,
+    pendingCommitment: turn.steering.pendingCommitment,
+    awaitingUserInput: turn.steering.awaitingUserInput,
     callStatus: turn.nextAction === "offer_call" && current.callStatus === "not_offered" ? "offered" : current.callStatus,
   };
 }

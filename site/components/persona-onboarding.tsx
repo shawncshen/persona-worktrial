@@ -2,6 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import { ArrowUp, FileText, Mic, MicOff, Phone, PhoneOff, Plus, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { isOnboardingReady, mergeAgentTurn, ONBOARDING_STORAGE_KEY, type AgentTurn, type Attachment, type Message, type OnboardingState } from "@/lib/onboarding";
 import { parseRealtimeVoiceEvent } from "@/lib/voice";
 
@@ -16,13 +17,41 @@ type ModelContext = {
   }, options?: { signal?: AbortSignal }) => void | Promise<void>;
 };
 
+type SpeechRecognitionResultEventLike = Event & {
+  resultIndex: number;
+  results: ArrayLike<{ isFinal: boolean; 0: { transcript: string } }>;
+};
+
+type SpeechRecognitionErrorEventLike = Event & { error: string };
+
+type SpeechRecognitionLike = EventTarget & {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start: () => void;
+  stop: () => void;
+  abort: () => void;
+  onresult: ((event: SpeechRecognitionResultEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  onend: (() => void) | null;
+};
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+
+function stripAttachmentPreview(attachment: Attachment) {
+  const { id, name, type, size } = attachment;
+  return { id, name, type, size };
+}
+
 const initialMessages: Message[] = [{
   id: "welcome",
   role: "agent",
   text: "welcome to persona :)\n\nI'm your personal agent, what do you want to name me?",
 }];
+const COMPLETION_MESSAGE = "You're done with onboarding. Let me know if you need anything from me!";
 const initialState: OnboardingState = {
   agentName: "", userName: "", userEmail: "", primaryNeed: "", callStatus: "not_offered", onboardingComplete: false,
+  currentGoal: "", nextStep: "", pendingCommitment: "", awaitingUserInput: "",
 };
 const DEVICE_STORAGE_KEY = "persona-device-id";
 
@@ -65,11 +94,14 @@ function MessageText({ text }: { text: string }) {
 }
 
 export function PersonaOnboarding() {
+  const router = useRouter();
   const [profile, setProfile] = useState<OnboardingState>(initialState);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
   const [attachmentError, setAttachmentError] = useState("");
+  const [dictationStatus, setDictationStatus] = useState<"idle" | "listening" | "error">("idle");
+  const [dictationMessage, setDictationMessage] = useState("");
   const [typing, setTyping] = useState(false);
   const [ready, setReady] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
@@ -95,6 +127,9 @@ export function PersonaOnboarding() {
   const liveTranscriptRef = useRef("");
   const callAttemptRef = useRef(0);
   const callRequestRef = useRef<AbortController | null>(null);
+  const completionQueuedRef = useRef(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const dictationBaseRef = useRef("");
 
   useEffect(() => {
     let deviceId = window.localStorage.getItem(DEVICE_STORAGE_KEY);
@@ -109,7 +144,12 @@ export function PersonaOnboarding() {
         const parsed = JSON.parse(saved) as { profile: OnboardingState; messages: Message[] };
         // Hydrate the durable demo state after the client mounts.
         // eslint-disable-next-line react-hooks/set-state-in-effect
-        setProfile({ ...parsed.profile, userEmail: parsed.profile.userEmail || "", onboardingComplete: Boolean(parsed.profile.onboardingComplete) });
+        setProfile({
+          ...initialState,
+          ...parsed.profile,
+          userEmail: parsed.profile.userEmail || "",
+          onboardingComplete: Boolean(parsed.profile.onboardingComplete),
+        });
         setMessages(parsed.messages);
       } catch { window.localStorage.removeItem(ONBOARDING_STORAGE_KEY); }
     }
@@ -120,7 +160,7 @@ export function PersonaOnboarding() {
     if (ready) {
       const persistedMessages = messages.map((message) => ({
         ...message,
-        attachments: message.attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment),
+        attachments: message.attachments?.map(stripAttachmentPreview),
       }));
       window.localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ profile, messages: persistedMessages }));
     }
@@ -188,11 +228,16 @@ export function PersonaOnboarding() {
   };
 
   useEffect(() => {
-    if (!ready || typing || profile.onboardingComplete || !isOnboardingReady(profile)) return;
-    setProfile((current) => ({ ...current, onboardingComplete: true }));
-    addAgentMessage("You're done with onboarding. Let me know if you need anything from me!", 280);
+    if (!ready || typing || profile.onboardingComplete || completionQueuedRef.current || !isOnboardingReady(profile)) return;
+    completionQueuedRef.current = true;
+    const timer = window.setTimeout(() => {
+      setProfile((current) => current.onboardingComplete ? current : { ...current, onboardingComplete: true });
+      setMessages((items) => items.some((message) => message.text === COMPLETION_MESSAGE)
+        ? items
+        : [...items, { id: crypto.randomUUID(), role: "agent", text: COMPLETION_MESSAGE }]);
+    }, 0);
+    return () => window.clearTimeout(timer);
   // Completion is derived from the persisted onboarding fields and must fire only once.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile, ready, typing]);
 
   const requestAgentTurn = async (nextMessages: Message[], currentProfile: OnboardingState, channel: "text" | "voice") => {
@@ -202,7 +247,7 @@ export function PersonaOnboarding() {
       body: JSON.stringify({
         messages: nextMessages.map((message) => ({
           ...message,
-          attachments: message.attachments?.map(({ previewUrl: _previewUrl, ...attachment }) => attachment),
+          attachments: message.attachments?.map(stripAttachmentPreview),
         })),
         profile: currentProfile,
         channel,
@@ -215,6 +260,9 @@ export function PersonaOnboarding() {
   const sendText = async (rawText: string) => {
     const text = rawText.trim();
     if ((!text && pendingAttachments.length === 0) || typing) return;
+    if (dictationStatus === "listening") recognitionRef.current?.stop();
+    setDictationMessage("");
+    setDictationStatus("idle");
     const attachments = pendingAttachments;
     const userMessage: Message = { id: crypto.randomUUID(), role: "user", text, attachments };
     const nextMessages = [...messages, userMessage];
@@ -230,14 +278,33 @@ export function PersonaOnboarding() {
     });
     try {
       const turn = await requestAgentTurn(nextMessages, profile, "text");
-      setProfile((current) => mergeAgentTurn(current, turn));
-      setMessages((items) => [
-        ...items.map((message) => turn.acknowledgedTask && message.id === userMessage.id ? { ...message, reaction: turn.reaction || "👍" } : message),
-        { id: crypto.randomUUID(), role: "agent", text: turn.reply },
-        ...(turn.onboardingFollowUp?.trim()
-          ? [{ id: crypto.randomUUID(), role: "agent" as const, text: turn.onboardingFollowUp.trim() }]
-          : []),
-      ]);
+      const updatedProfile = mergeAgentTurn(profile, turn);
+      const completesNow = !profile.onboardingComplete && isOnboardingReady(updatedProfile);
+      const completedProfile = completesNow ? { ...updatedProfile, onboardingComplete: true } : updatedProfile;
+      if (completesNow) completionQueuedRef.current = true;
+      setProfile(completedProfile);
+      setMessages((items) => {
+        const reactedItems = items.map((message) => turn.acknowledgedTask && message.id === userMessage.id
+          ? { ...message, reaction: turn.reaction || "👍" }
+          : message);
+        if (completesNow) {
+          const shouldContinueTask = turn.acknowledgedTask || Boolean(completedProfile.pendingCommitment);
+          return [
+            ...reactedItems,
+            { id: crypto.randomUUID(), role: "agent", text: COMPLETION_MESSAGE },
+            ...(shouldContinueTask && turn.reply.trim()
+              ? [{ id: crypto.randomUUID(), role: "agent" as const, text: turn.reply.trim() }]
+              : []),
+          ];
+        }
+        return [
+          ...reactedItems,
+          { id: crypto.randomUUID(), role: "agent", text: turn.reply },
+          ...(turn.onboardingFollowUp?.trim()
+            ? [{ id: crypto.randomUUID(), role: "agent" as const, text: turn.onboardingFollowUp.trim() }]
+            : []),
+        ];
+      });
     } catch {
       setMessages((items) => [...items, { id: crypto.randomUUID(), role: "agent", text: "I lost my train of thought for a second. Try sending that again?" }]);
     } finally {
@@ -272,6 +339,67 @@ export function PersonaOnboarding() {
     event.preventDefault();
     void sendText(input);
   };
+
+  const stopDictation = () => {
+    recognitionRef.current?.stop();
+  };
+
+  const toggleDictation = () => {
+    if (dictationStatus === "listening") {
+      stopDictation();
+      return;
+    }
+
+    const speechWindow = window as Window & {
+      SpeechRecognition?: SpeechRecognitionConstructor;
+      webkitSpeechRecognition?: SpeechRecognitionConstructor;
+    };
+    const Recognition = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+    if (!Recognition) {
+      setDictationStatus("error");
+      setDictationMessage("Dictation isn’t supported in this browser. You can keep typing here.");
+      return;
+    }
+
+    const recognition = new Recognition();
+    let dictationFailed = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = navigator.language || "en-US";
+    dictationBaseRef.current = input.trim();
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let index = 0; index < event.results.length; index += 1) transcript += event.results[index][0].transcript;
+      const separator = dictationBaseRef.current && transcript.trim() ? " " : "";
+      setInput(`${dictationBaseRef.current}${separator}${transcript.trimStart()}`);
+    };
+    recognition.onerror = (event) => {
+      dictationFailed = true;
+      setDictationStatus("error");
+      setDictationMessage(event.error === "not-allowed"
+        ? "Microphone access was blocked. Allow it in your browser, or keep typing."
+        : "Dictation stopped unexpectedly. Your draft is still here.");
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      if (!dictationFailed) {
+        setDictationStatus("idle");
+        setDictationMessage("Dictation added to your draft.");
+      }
+    };
+    recognitionRef.current = recognition;
+    setDictationMessage("Listening… tap the microphone when you’re done.");
+    setDictationStatus("listening");
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+      setDictationStatus("error");
+      setDictationMessage("Dictation couldn’t start. Your draft is still here.");
+    }
+  };
+
+  useEffect(() => () => recognitionRef.current?.abort(), []);
 
   const handleComposerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter" && event.metaKey) {
@@ -397,7 +525,7 @@ export function PersonaOnboarding() {
         const greeting = profileRef.current.agentName
           ? profileRef.current.userName
             ? `Say exactly: "Hey ${profileRef.current.userName}, it’s ${profileRef.current.agentName}. Let’s continue where we left off."`
-            : `Say exactly: "Hey, it’s ${profileRef.current.agentName}. What should I call you, and what could you use a hand with?"`
+            : `Say exactly: "Hey, it’s ${profileRef.current.agentName}. What should I call you?"`
           : `Say exactly: "Hey! Before we get started, what do you want to name me?"`;
         channel.send(JSON.stringify({ type: "response.create", response: { instructions: greeting } }));
       });
@@ -407,7 +535,12 @@ export function PersonaOnboarding() {
       const requestController = new AbortController();
       callRequestRef.current = requestController;
       const connectionTimeout = window.setTimeout(() => requestController.abort(), 15000);
-      const response = await fetch("/api/realtime", { method: "POST", headers: { "Content-Type": "application/sdp" }, body: offer.sdp, signal: requestController.signal });
+      const response = await fetch("/api/realtime", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sdp: offer.sdp, profile: profileRef.current }),
+        signal: requestController.signal,
+      });
       window.clearTimeout(connectionTimeout);
       if (!response.ok) throw new Error(await response.text());
       if (attempt !== callAttemptRef.current) return;
@@ -516,6 +649,7 @@ export function PersonaOnboarding() {
     pendingAttachments.forEach((attachment) => attachment.previewUrl && URL.revokeObjectURL(attachment.previewUrl));
     setPendingAttachments([]);
     setAttachmentError("");
+    completionQueuedRef.current = false;
   };
 
   const agentLabel = profile.agentName || "Your Persona";
@@ -528,7 +662,7 @@ export function PersonaOnboarding() {
           <span className="wordmark-sheen" aria-hidden="true">persona</span>
         </button>
         <div className="header-actions">
-          <button type="button" className="memory-link" onClick={() => window.location.assign("/memory")}>What I know</button>
+          <button type="button" className="memory-link" onClick={() => router.push("/memory")}>What I know</button>
         </div>
       </header>
 
@@ -544,7 +678,10 @@ export function PersonaOnboarding() {
         <header className="message-header">
           <button type="button" className="chat-reset-button" onClick={resetDemo}>Restart session</button>
           <div className="contact-identity">
-            <div className="contact-avatar" aria-hidden="true"><img src="/agent-avatar-v2.png" alt="" /></div>
+            <div className="contact-avatar" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/agent-avatar-v2.png" alt="" />
+            </div>
             <strong>{agentLabel}</strong>
           </div>
           <button type="button" className="icon-button" aria-label={`Call ${agentLabel}`} onClick={startCall}><Phone size={19} strokeWidth={1.9} /></button>
@@ -558,6 +695,8 @@ export function PersonaOnboarding() {
                 <div className="message-bubble">
                   {message.attachments?.length ? <div className="message-attachments">
                     {message.attachments.map((attachment) => attachment.type.startsWith("image/") && attachment.previewUrl
+                      // Blob URLs are device-local previews and cannot use the framework image optimizer.
+                      // eslint-disable-next-line @next/next/no-img-element
                       ? <img key={attachment.id} src={attachment.previewUrl} alt={attachment.name} />
                       : <div className="file-attachment" key={attachment.id}><FileText size={18} /><span>{attachment.name}</span></div>)}
                   </div> : null}
@@ -574,6 +713,8 @@ export function PersonaOnboarding() {
           {pendingAttachments.length > 0 && <div className="attachment-tray" aria-label="Selected attachments">
             {pendingAttachments.map((attachment) => <div className="pending-attachment" key={attachment.id}>
               {attachment.type.startsWith("image/") && attachment.previewUrl
+                // Blob URLs are device-local previews and cannot use the framework image optimizer.
+                // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={attachment.previewUrl} alt="" />
                 : <FileText size={19} />}
               <span>{attachment.name}</span>
@@ -581,12 +722,17 @@ export function PersonaOnboarding() {
             </div>)}
           </div>}
           {attachmentError && <p className="attachment-error" role="alert">{attachmentError}</p>}
+          {dictationMessage && <p className={`dictation-status ${dictationStatus === "error" ? "error" : ""}`} role="status">{dictationMessage}</p>}
           <input ref={fileInputRef} className="attachment-input" type="file" multiple accept="image/*,.pdf,.doc,.docx,.txt,.rtf,.csv,.xls,.xlsx" onChange={(event) => chooseAttachments(event.target.files)} />
           <button type="button" className="composer-icon" aria-label="Attach photos or files" onClick={() => fileInputRef.current?.click()}><Plus size={21} strokeWidth={1.9} /></button>
           <label className="message-input-wrap">
             <span className="sr-only">Message {agentLabel}</span>
             <input value={input} onChange={(event) => setInput(event.target.value)} onKeyDown={handleComposerKeyDown} type="text" inputMode="text" enterKeyHint="send" autoCapitalize="sentences" spellCheck placeholder="Message" aria-label={`Message ${agentLabel}`} autoComplete="off" />
-            {input.trim() || pendingAttachments.length ? <button type="submit" className="send-button" aria-label="Send message"><ArrowUp size={18} strokeWidth={2.4} /></button> : <button type="button" className="mic-button" aria-label="Dictate a message"><Mic size={19} strokeWidth={1.9} /></button>}
+            {dictationStatus === "listening"
+              ? <button type="button" className="mic-button listening" aria-label="Stop dictation" aria-pressed="true" onClick={toggleDictation}><MicOff size={19} strokeWidth={1.9} /></button>
+              : input.trim() || pendingAttachments.length
+                ? <button type="submit" className="send-button" aria-label="Send message"><ArrowUp size={18} strokeWidth={2.4} /></button>
+                : <button type="button" className="mic-button" aria-label="Dictate a message" aria-pressed="false" onClick={toggleDictation}><Mic size={19} strokeWidth={1.9} /></button>}
           </label>
         </form>
       </section>
@@ -594,7 +740,10 @@ export function PersonaOnboarding() {
       {callOpen && (
         <div className="call-backdrop" role="dialog" aria-modal="true" aria-label={`Voice call with ${agentLabel}`}>
           <div className="call-panel">
-            <div className="call-aura" aria-hidden="true"><img src="/agent-avatar-v2.png" alt="" /></div>
+            <div className="call-aura" aria-hidden="true">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/agent-avatar-v2.png" alt="" />
+            </div>
             <h2>{agentLabel}</h2>
             <p className="call-status">{callActive
               ? `${String(Math.floor(callSeconds / 60)).padStart(2, "0")}:${String(callSeconds % 60).padStart(2, "0")}`
